@@ -1,4 +1,5 @@
 // TODO: get rid of price map
+// FEATURE: Replace order type
 // store total qty on level
 // Problem: VecDeque is not contigous?
 use rand::{
@@ -196,7 +197,7 @@ impl OrderBook {
         self.best_bid_price = best_bid_price;
         self.best_offer_price = best_offer_price;
         dbgp!(
-            "    Updating bbo {:?} {:?}",
+            "[ INFO ]    Updating bbo {:?} {:?}",
             self.best_bid_price,
             self.best_offer_price
         );
@@ -214,12 +215,12 @@ impl OrderBook {
         for o in iter {
             if *incoming_order_qty > 0 {
                 if o.qty < *incoming_order_qty {
-                    dbgp!("    Incomplete Fill");
+                    dbgp!("[ FILL ]    Incomplete");
                     *incoming_order_qty -= o.qty;
                     done_qty += o.qty;
                     incomplete_fills += 1;
                 } else {
-                    dbgp!("    Complete Fill");
+                    dbgp!("[ FILL ]    Complete");
                     done_qty += *incoming_order_qty;
                     front_dec = *incoming_order_qty;
                     *incoming_order_qty = 0;
@@ -245,7 +246,12 @@ impl OrderBook {
         order_id: Option<u64>,
     ) -> FillResult {
         let mut remaining_order_qty = order_qty;
-        dbgp!("Got {:?} {}@{}", side, remaining_order_qty, price);
+        dbgp!(
+            "[ INFO ] Booked {:?} {}@{}",
+            side,
+            remaining_order_qty,
+            price
+        );
         let mut fill_result = FillResult::new();
         match side {
             Side::Bid => {
@@ -263,7 +269,7 @@ impl OrderBook {
                             &mut self.order_loc,
                         );
                         if matched_qty != 0 {
-                            dbgp!("    Matched {}@{}", matched_qty, x);
+                            dbgp!("[ INFO ]    Matched {}@{}", matched_qty, x);
                             fill_result.filled_orders.push((matched_qty, *x));
                         }
                         if let Some((a, _)) = price_map_iter.next() {
@@ -289,7 +295,7 @@ impl OrderBook {
                             &mut self.order_loc,
                         );
                         if matched_qty != 0 {
-                            dbgp!("    Matched {}@{}", matched_qty, x);
+                            dbgp!("[ INFO ]    Matched {}@{}", matched_qty, x);
                             fill_result.filled_orders.push((matched_qty, *x));
                         }
                         if let Some((a, _)) = price_map_iter.next_back() {
@@ -303,7 +309,7 @@ impl OrderBook {
         }
         fill_result.remaining_qty = remaining_order_qty;
         if remaining_order_qty != 0 {
-            dbgp!("    Remaining {}@{}", remaining_order_qty, price);
+            dbgp!("[ INFO ]    Remaining {}@{}", remaining_order_qty, price);
             if remaining_order_qty == order_qty {
                 fill_result.status = OrderStatus::Created;
             } else {
@@ -325,20 +331,15 @@ impl OrderBook {
             (Some(_), Some(_)) => {
                 let total_bid_qty = self.bid_book.get_total_qty(self.best_bid_price.unwrap());
                 let total_ask_qty = self.ask_book.get_total_qty(self.best_offer_price.unwrap());
-                dbgp!("---------------");
                 dbgp!(
-                    "Best bid {:?}, qty {}",
+                    "[ BBO  ] {:?}@{} x {:?}@{}",
+                    total_bid_qty,
                     self.best_bid_price.unwrap(),
-                    total_bid_qty
-                );
-                dbgp!(
-                    "Best ask {:?}, qty {}",
+                    total_ask_qty,
                     self.best_offer_price.unwrap(),
-                    total_ask_qty
                 );
                 let spread = self.best_offer_price.unwrap() - self.best_bid_price.unwrap();
-                dbgp!("Spread is {:.6},", spread);
-                dbgp!("---------------");
+                dbgp!("[ BBO  ] Spread is {:.6},", spread);
                 Ok((
                     self.best_bid_price.unwrap(),
                     self.best_offer_price.unwrap(),
