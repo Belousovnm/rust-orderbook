@@ -64,7 +64,7 @@ impl ExecutionReport {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Order {
     pub order_id: u64,
     pub price: u64,
@@ -350,8 +350,8 @@ impl OrderBook {
         result
     }
 
-    pub fn get_offset(&self, order_id: u64) -> Result<usize, &str> {
-        if let Some((side, price_level, _)) = self.order_loc.get(&order_id) {
+    pub fn get_offset(&self, order_id: u64) -> Result<(&Side, &u64, usize), &str> {
+        if let Some((side, price_level, price)) = self.order_loc.get(&order_id) {
             let book = match side {
                 Side::Bid => &self.bid_book,
                 Side::Ask => &self.ask_book,
@@ -365,9 +365,49 @@ impl OrderBook {
                     break;
                 }
             }
-            Ok(qplace)
+            Ok((side, price, qplace))
         } else {
             Err("No such order id")
         }
+    }
+}
+
+pub fn orders_from_snapshot(
+    bid_snap: Vec<(u64, u64)>,
+    ask_snap: Vec<(u64, u64)>,
+) -> (Vec<Order>, Vec<Order>) {
+    let mut bid_orders = Vec::with_capacity(10);
+    let mut ask_orders = Vec::with_capacity(10);
+    for level in bid_snap.iter() {
+        bid_orders.push(Order {
+            order_id: 1,
+            price: level.0,
+            qty: level.1,
+        })
+    }
+    for level in ask_snap.iter() {
+        ask_orders.push(Order {
+            order_id: 1,
+            price: level.0,
+            qty: level.1,
+        })
+    }
+    (bid_orders, ask_orders)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{orders_from_snapshot, Order};
+
+    #[test]
+    fn test_orders_from_snapshot() {
+        let bid_snap = vec![(99, 1)];
+        let ask_snap = vec![(101, 1)];
+        let order = Order {
+            order_id: 1,
+            price: 99,
+            qty: 1,
+        };
+        assert_eq!(orders_from_snapshot(bid_snap, ask_snap).0[0], order);
     }
 }
