@@ -11,7 +11,7 @@ fn main() {
         order_id += 1;
         let fr = ob.add_limit_order(
             rng.gen(),
-            rng.gen_range(75..125),
+            rng.gen_range(75..=125),
             rng.gen_range(1..=100),
             Some(order_id),
         );
@@ -19,6 +19,7 @@ fn main() {
             dbgp!("{:#?}, avg_fill_price {}", fr, fr.avg_fill_price());
         }
         let _ = ob.get_bbo();
+        dbgp!("{:?}", ob.get_offset(order_id));
     }
     dbgp!("{:#?}", ob);
     dbgp!("{:?}", ob.get_bbo());

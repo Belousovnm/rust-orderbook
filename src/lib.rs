@@ -37,16 +37,16 @@ pub enum OrderStatus {
 }
 
 #[derive(Debug)]
-pub struct FillResult {
+pub struct ExecutionReport {
     // Orders filled (qty, price)
     pub filled_orders: Vec<(u64, u64)>,
     pub remaining_qty: u64,
     pub status: OrderStatus,
 }
 
-impl FillResult {
+impl ExecutionReport {
     fn new() -> Self {
-        FillResult {
+        ExecutionReport {
             filled_orders: Vec::new(),
             remaining_qty: u64::MAX,
             status: OrderStatus::Uninitialized,
@@ -244,7 +244,7 @@ impl OrderBook {
         price: u64,
         order_qty: u64,
         order_id: Option<u64>,
-    ) -> FillResult {
+    ) -> ExecutionReport {
         let mut remaining_order_qty = order_qty;
         dbgp!(
             "[ INFO ] Booked {:?} {}@{}",
@@ -252,7 +252,7 @@ impl OrderBook {
             remaining_order_qty,
             price
         );
-        let mut fill_result = FillResult::new();
+        let mut exec_report = ExecutionReport::new();
         match side {
             Side::Bid => {
                 let askbook = &mut self.ask_book;
@@ -270,7 +270,7 @@ impl OrderBook {
                         );
                         if matched_qty != 0 {
                             dbgp!("[ INFO ]    Matched {}@{}", matched_qty, x);
-                            fill_result.filled_orders.push((matched_qty, *x));
+                            exec_report.filled_orders.push((matched_qty, *x));
                         }
                         if let Some((a, _)) = price_map_iter.next() {
                             x = a;
@@ -296,7 +296,7 @@ impl OrderBook {
                         );
                         if matched_qty != 0 {
                             dbgp!("[ INFO ]    Matched {}@{}", matched_qty, x);
-                            fill_result.filled_orders.push((matched_qty, *x));
+                            exec_report.filled_orders.push((matched_qty, *x));
                         }
                         if let Some((a, _)) = price_map_iter.next_back() {
                             x = a;
@@ -307,21 +307,21 @@ impl OrderBook {
                 }
             }
         }
-        fill_result.remaining_qty = remaining_order_qty;
+        exec_report.remaining_qty = remaining_order_qty;
         if remaining_order_qty != 0 {
             dbgp!("[ INFO ]    Remaining {}@{}", remaining_order_qty, price);
             if remaining_order_qty == order_qty {
-                fill_result.status = OrderStatus::Created;
+                exec_report.status = OrderStatus::Created;
             } else {
-                fill_result.status = OrderStatus::PartiallyFilled;
+                exec_report.status = OrderStatus::PartiallyFilled;
             }
             self.create_new_limit_order(side, price, remaining_order_qty, order_id);
         } else {
-            fill_result.status = OrderStatus::Filled;
+            exec_report.status = OrderStatus::Filled;
         }
         self.update_bbo();
 
-        fill_result
+        exec_report
     }
     pub fn get_bbo(&self) -> Result<(u64, u64, u64), &str> {
         let result = match (self.best_bid_price, self.best_offer_price) {
@@ -348,5 +348,26 @@ impl OrderBook {
             }
         };
         result
+    }
+
+    pub fn get_offset(&self, order_id: u64) -> Result<usize, &str> {
+        if let Some((side, price_level, _)) = self.order_loc.get(&order_id) {
+            let book = match side {
+                Side::Bid => &self.bid_book,
+                Side::Ask => &self.ask_book,
+            };
+            let mut qplace = 0;
+            let currdeque = book.price_levels.get(*price_level).unwrap();
+            for o in currdeque.iter() {
+                if o.order_id != order_id {
+                    qplace += o.qty as usize
+                } else {
+                    break;
+                }
+            }
+            Ok(qplace)
+        } else {
+            Err("No such order id")
+        }
     }
 }

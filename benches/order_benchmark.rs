@@ -20,6 +20,9 @@ fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook 
             rng.gen_range(1..=500),
             Some(order_id),
         );
+        if order_id > 100 {
+            let _ = ob.cancel_order(order_id - 100);
+        };
     }
     ob
 }
