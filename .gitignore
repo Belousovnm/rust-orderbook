@@ -1,3 +1,4 @@
 /target
 *.svg
 perf.*
+.gdb_history

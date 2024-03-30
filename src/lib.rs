@@ -12,7 +12,9 @@ use std::collections::{BTreeMap, HashMap, VecDeque};
 macro_rules! dbgp {
     ($($arg:tt)*) => (#[cfg(debug_assertions)] println!($($arg)*));
 }
-#[derive(Debug)]
+
+#[repr(u8)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Side {
     Bid,
     Ask,
@@ -66,7 +68,8 @@ impl ExecutionReport {
 
 #[derive(Debug, PartialEq)]
 pub struct Order {
-    pub order_id: u64,
+    pub id: u64,
+    pub side: Side,
     pub price: u64,
     pub qty: u64,
 }
@@ -124,7 +127,7 @@ impl OrderBook {
                 Side::Ask => &mut self.ask_book,
             };
             let currdeque = book.price_levels.get_mut(*price_level).unwrap();
-            currdeque.retain(|x| x.order_id != order_id);
+            currdeque.retain(|x| x.id != order_id);
             if currdeque.is_empty() {
                 book.price_map.remove(price);
             }
@@ -150,7 +153,8 @@ impl OrderBook {
             Side::Bid => &mut self.bid_book,
         };
         let order = Order {
-            order_id,
+            id: order_id,
+            side,
             price,
             qty,
         };
@@ -231,20 +235,18 @@ impl OrderBook {
         }
         for _ in 1..=incomplete_fills {
             let pop = price_level.pop_front();
-            order_loc.remove(&pop.unwrap().order_id);
+            order_loc.remove(&pop.unwrap().id);
         }
         if front_dec > 0 {
             price_level.front_mut().unwrap().qty -= front_dec;
         };
         done_qty
     }
-    pub fn add_limit_order(
-        &mut self,
-        side: Side,
-        price: u64,
-        order_qty: u64,
-        order_id: Option<u64>,
-    ) -> ExecutionReport {
+    pub fn add_limit_order(&mut self, order: &Order) -> ExecutionReport {
+        let order_qty = order.qty;
+        let order_id = order.id;
+        let side = order.side;
+        let price = order.price;
         let mut remaining_order_qty = order_qty;
         dbgp!(
             "[ INFO ] Booked {:?} {}@{}",
@@ -315,7 +317,7 @@ impl OrderBook {
             } else {
                 exec_report.status = OrderStatus::PartiallyFilled;
             }
-            self.create_new_limit_order(side, price, remaining_order_qty, order_id);
+            self.create_new_limit_order(side, price, remaining_order_qty, Some(order_id));
         } else {
             exec_report.status = OrderStatus::Filled;
         }
@@ -350,64 +352,113 @@ impl OrderBook {
         result
     }
 
-    pub fn get_offset(&self, order_id: u64) -> Result<(&Side, &u64, usize), &str> {
+    pub fn get_offset(&self, order_id: u64) -> Result<(Side, u64, u64, u64, u64, u64), &str> {
         if let Some((side, price_level, price)) = self.order_loc.get(&order_id) {
             let book = match side {
                 Side::Bid => &self.bid_book,
                 Side::Ask => &self.ask_book,
             };
-            let mut qplace = 0;
+            let mut qty_head = 0;
+            let mut qty_tail = 0;
+            let mut qty = 0;
+            let mut order_met = false;
             let currdeque = book.price_levels.get(*price_level).unwrap();
             for o in currdeque.iter() {
-                if o.order_id != order_id {
-                    qplace += o.qty as usize
-                } else {
-                    break;
-                }
+                match o.id == order_id {
+                    false if !order_met => qty_head += o.qty,
+                    true => {
+                        qty = o.qty;
+                        order_met = true;
+                    }
+                    false if order_met => qty_tail += o.qty,
+                    _ => (),
+                };
             }
-            Ok((side, price, qplace))
+            Ok((*side, *price, qty_head, qty, qty_tail, order_id))
         } else {
             Err("No such order id")
         }
     }
 }
 
-pub fn orders_from_snapshot(
-    bid_snap: Vec<(u64, u64)>,
-    ask_snap: Vec<(u64, u64)>,
-) -> (Vec<Order>, Vec<Order>) {
-    let mut bid_orders = Vec::with_capacity(10);
-    let mut ask_orders = Vec::with_capacity(10);
-    for level in bid_snap.iter() {
-        bid_orders.push(Order {
-            order_id: 1,
-            price: level.0,
-            qty: level.1,
-        })
+fn place_order_from_snap(snap: Vec<(Side, u64, u64)>, ob: &mut OrderBook) {
+    let mut id = 0;
+    for level in snap.iter() {
+        id += 1;
+        let _ = ob.add_limit_order(&Order {
+            id,
+            side: level.0,
+            price: level.1,
+            qty: level.2,
+        });
     }
-    for level in ask_snap.iter() {
-        ask_orders.push(Order {
-            order_id: 1,
-            price: level.0,
-            qty: level.1,
-        })
+}
+
+pub fn next_snap(
+    snap: Vec<(Side, u64, u64)>,
+    ob: &mut OrderBook,
+    offset: Result<(Side, u64, u64, u64, u64, u64), &str>,
+) {
+    match offset.ok() {
+        Some((side, price, qty_head, qty, qty_tail, id)) => {
+            let mut filtered_snap = Vec::with_capacity(11);
+            let mut new_qty = qty_head + qty_tail;
+            for level in snap.iter() {
+                if level.1 == price {
+                    new_qty = level.2;
+                } else {
+                    filtered_snap.push(*level)
+                }
+            }
+            place_order_from_snap(filtered_snap, ob);
+            let (qty_head, qty_tail) = if new_qty < qty_head + qty_tail {
+                let need_to_cut = qty_head + qty_head - new_qty;
+                let cut_qty_tail = qty_tail.min(need_to_cut);
+                (
+                    qty_head - need_to_cut + cut_qty_tail,
+                    qty_tail - cut_qty_tail,
+                )
+            } else if new_qty >= qty_head + qty_tail {
+                (qty_head, new_qty - qty_head)
+            } else {
+                unreachable!()
+            };
+
+            let _ = ob.add_limit_order(&Order {
+                id: 666,
+                side,
+                price,
+                qty: qty_head,
+            });
+            let _ = ob.add_limit_order(&Order {
+                id,
+                side,
+                price,
+                qty,
+            });
+            let _ = ob.add_limit_order(&Order {
+                id: 999,
+                side,
+                price,
+                qty: qty_tail,
+            });
+        }
+        None => place_order_from_snap(snap, ob),
     }
-    (bid_orders, ask_orders)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{orders_from_snapshot, Order};
+
+    use crate::{next_snap, OrderBook, Side};
 
     #[test]
     fn test_orders_from_snapshot() {
-        let bid_snap = vec![(99, 1)];
-        let ask_snap = vec![(101, 1)];
-        let order = Order {
-            order_id: 1,
-            price: 99,
-            qty: 1,
-        };
-        assert_eq!(orders_from_snapshot(bid_snap, ask_snap).0[0], order);
+        let snap = vec![(Side::Bid, 99, 1), (Side::Ask, 101, 1)];
+        // let offset = Ok((Side::Bid, 101, 0, 1, 0, 999));
+        let offset = Err("unittest");
+        let mut ob = OrderBook::new("SPB".to_string());
+        next_snap(snap, &mut ob, offset);
+        assert_eq!(ob.get_bbo().unwrap(), (99, 101, 2));
     }
 }
