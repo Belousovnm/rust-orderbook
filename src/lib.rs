@@ -326,7 +326,7 @@ impl OrderBook {
         exec_report
     }
     pub fn get_bbo(&self) -> Result<(u64, u64, u64), &str> {
-        let result = match (self.best_bid_price, self.best_offer_price) {
+        match (self.best_bid_price, self.best_offer_price) {
             (None, None) => Err("Both bid and offer HalfBooks are empty"),
             (Some(_), None) => Err("Offer HalfBook is empty"),
             (None, Some(_)) => Err("Bid HalfBook is empty"),
@@ -348,8 +348,7 @@ impl OrderBook {
                     spread,
                 ))
             }
-        };
-        result
+        }
     }
 
     pub fn get_offset(&self, order_id: u64) -> Result<(Side, u64, u64, u64, u64, u64), &str> {
@@ -382,11 +381,9 @@ impl OrderBook {
 }
 
 fn place_order_from_snap(snap: Vec<(Side, u64, u64)>, ob: &mut OrderBook) {
-    let mut id = 0;
-    for level in snap.iter() {
-        id += 1;
+    for (id, level) in snap.iter().enumerate() {
         let _ = ob.add_limit_order(Order {
-            id,
+            id: id as u64,
             side: level.0,
             price: level.1,
             qty: level.2,
