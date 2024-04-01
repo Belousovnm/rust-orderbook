@@ -242,7 +242,7 @@ impl OrderBook {
         };
         done_qty
     }
-    pub fn add_limit_order(&mut self, order: &Order) -> ExecutionReport {
+    pub fn add_limit_order(&mut self, order: Order) -> ExecutionReport {
         let order_qty = order.qty;
         let order_id = order.id;
         let side = order.side;
@@ -385,7 +385,7 @@ fn place_order_from_snap(snap: Vec<(Side, u64, u64)>, ob: &mut OrderBook) {
     let mut id = 0;
     for level in snap.iter() {
         id += 1;
-        let _ = ob.add_limit_order(&Order {
+        let _ = ob.add_limit_order(Order {
             id,
             side: level.0,
             price: level.1,
@@ -424,19 +424,19 @@ pub fn next_snap(
                 unreachable!()
             };
 
-            let _ = ob.add_limit_order(&Order {
+            let _ = ob.add_limit_order(Order {
                 id: 666,
                 side,
                 price,
                 qty: qty_head,
             });
-            let _ = ob.add_limit_order(&Order {
+            let _ = ob.add_limit_order(Order {
                 id,
                 side,
                 price,
                 qty,
             });
-            let _ = ob.add_limit_order(&Order {
+            let _ = ob.add_limit_order(Order {
                 id: 999,
                 side,
                 price,
@@ -450,7 +450,9 @@ pub fn next_snap(
 #[cfg(test)]
 mod tests {
 
-    use crate::{next_snap, OrderBook, Side};
+    // use crate::{next_snap, OrderBook, Side};
+    use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_orders_from_snapshot() {

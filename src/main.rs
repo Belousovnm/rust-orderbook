@@ -16,13 +16,13 @@ fn main() {
     //     dbgp!("{:#?}, avg_fill_price {}", fr, fr.avg_fill_price());
     // }
     let trader_order_id = 777;
-    let _ = ob.add_limit_order(&Order {
+    let _ = ob.add_limit_order(Order {
         side: Side::Bid,
         price: 101,
         qty: 1,
         id: trader_order_id,
     });
-    let _ = ob.add_limit_order(&Order {
+    let _ = ob.add_limit_order(Order {
         side: Side::Bid,
         price: 101,
         qty: 10,

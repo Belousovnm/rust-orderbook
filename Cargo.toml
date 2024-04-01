@@ -11,7 +11,11 @@ name = "orderbook-bin"
 path = "src/main.rs"
 
 [profile.release]
+opt-level='z'
 lto = true
+codegen-units=1
+strip = 'symbols'
+
 [profile.bench]
 debug = true
 
@@ -20,6 +24,8 @@ rand = "0.8.4"
 
 [dev-dependencies]
 criterion = "0.5.1"
+pretty_assertions = "1.4"
+tempfile = "3.10"
 
 [[bench]]
 name = "order_benchmark"
