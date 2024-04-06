@@ -3,7 +3,7 @@ use orderbook::{dbgp, Order, OrderBook, Side};
 use orderbook::next_snap;
 
 fn main() {
-    println!("Crafting new Orderbook");
+    dbgp!("Crafting new Orderbook");
     let mut ob = OrderBook::new("SPB".to_string());
     // let mut rng = rand::thread_rng();
     let snap = vec![
@@ -40,5 +40,5 @@ fn main() {
 
     dbgp!("{:#?}", ob);
     dbgp!("{:?}", ob.get_bbo());
-    println!("Done!");
+    dbgp!("Done!");
 }
