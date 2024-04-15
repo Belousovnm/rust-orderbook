@@ -2,3 +2,4 @@
 *.svg
 perf.*
 .gdb_history
+*.out.*

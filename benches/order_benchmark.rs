@@ -1,6 +1,6 @@
 use core::time::Duration;
 use criterion::{criterion_group, criterion_main, Criterion};
-use orderbook::{Order, OrderBook, Side};
+use orderbook_lib::{Order, OrderBook, Side};
 use rand::Rng;
 
 fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook {
@@ -20,15 +20,15 @@ fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook 
             qty: rng.gen_range(1..=500),
             id: order_id,
         });
-        if order_id > 100 {
-            let _ = ob.cancel_order(order_id - 100);
-        };
+        // if order_id > 100 {
+        //     let _ = ob.cancel_order(order_id - 100);
+        // };
     }
     ob
 }
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
+    let mut rng = rand::thread_rng();
     let mut group = c.benchmark_group("order-benchmark");
     group.sample_size(10);
     group.measurement_time(Duration::new(20, 0));
