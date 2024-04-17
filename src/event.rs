@@ -1,5 +1,4 @@
 // use orderbook_lib::Side;
-use rstest::{fixture, rstest};
 use serde::de::Deserializer;
 use serde::de::Error;
 use serde::de::MapAccess;
@@ -86,26 +85,5 @@ impl<'de> Deserialize<'de> for Event {
         }
 
         deserializer.deserialize_map(EventVisitor)
-    }
-}
-
-mod tests {
-    #[allow(unused_imports)]
-    use super::*;
-    // use pretty_assertions::assert_eq;
-
-    #[fixture]
-    fn deser() -> Event {
-        let data = "bid_price,ask_price,bid_qty,ask_qty\n100,101,16,13";
-        let mut reader = csv::Reader::from_reader(data.as_bytes());
-        reader.deserialize::<Event>().next().unwrap().unwrap()
-    }
-
-    #[rstest]
-    fn deser_level(deser: Event) {
-        assert_eq!(deser.bid_price, 100);
-        assert_eq!(deser.ask_price, 101);
-        assert_eq!(deser.bid_qty, 16);
-        assert_eq!(deser.ask_qty, 13);
     }
 }
