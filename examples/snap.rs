@@ -19,10 +19,15 @@ fn event_to_snap() {
         csv::Reader::from_path("/opt/Zenpy/jupyter/data/voskhod/TQBR/SBER/ob.csv").unwrap();
 
     let mut rdr = reader.deserialize::<Event>();
-
+    // let mut event_counter = 0;
     while let Some(Ok(event)) = rdr.next() {
         dbgp!("{:?}", event);
 
+        // if event_counter == 10 {
+        //     break;
+        // } else {
+        //     event_counter += 1;
+        // }
         let snap = vec![
             (Side::Bid, event.bid_price, event.bid_qty),
             (Side::Ask, event.ask_price, event.ask_qty),

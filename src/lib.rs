@@ -404,6 +404,7 @@ pub fn next_snap(
     ob: &mut OrderBook,
     offset: Result<(Side, u64, u64, u64, u64, u64), &str>,
 ) {
+    *ob = OrderBook::new("SPB".to_string());
     match offset.ok() {
         Some((side, price, qty_head, qty, qty_tail, id)) => {
             let mut filtered_snap = Vec::with_capacity(11);
