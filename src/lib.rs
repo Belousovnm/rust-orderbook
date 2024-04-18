@@ -417,10 +417,10 @@ pub fn next_snap(
             }
             place_order_from_snap(filtered_snap, ob);
             let (qty_head, qty_tail) = if new_qty < qty_head + qty_tail {
-                let need_to_cut = qty_head + qty_head - new_qty;
+                let need_to_cut = qty_tail + qty_head - new_qty;
                 let cut_qty_tail = qty_tail.min(need_to_cut);
                 (
-                    qty_head - need_to_cut + cut_qty_tail,
+                    qty_head + cut_qty_tail - need_to_cut,
                     qty_tail - cut_qty_tail,
                 )
             } else if new_qty >= qty_head + qty_tail {

@@ -36,7 +36,7 @@ fn main() {
     let snap = vec![
         (Side::Bid, 99, 10),
         (Side::Bid, 100, 10),
-        (Side::Bid, 101, 20),
+        (Side::Bid, 101, 5),
     ];
     next_snap(snap, &mut ob, offset);
 
