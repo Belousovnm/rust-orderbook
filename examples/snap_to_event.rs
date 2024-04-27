@@ -8,11 +8,12 @@
 //     dbg!(df);
 //     Ok(())
 // };
-
+use orderbook_lib::dbgp;
 use orderbook_lib::event::Event;
-use orderbook_lib::{dbgp, next_snap, OrderBook, Side};
+use orderbook_lib::orderbook::{OrderBook, Side};
+use orderbook_lib::snap::next_snap;
 
-fn event_to_snap() {
+fn snap_to_event() {
     dbgp!("Crafting new Orderbook");
     let mut ob = OrderBook::new("SBER".to_string());
     let mut reader =
@@ -40,5 +41,5 @@ fn event_to_snap() {
 }
 
 fn main() {
-    event_to_snap()
+    snap_to_event()
 }

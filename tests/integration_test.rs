@@ -1,6 +1,7 @@
 mod common;
 use orderbook_lib::event::Event;
-use orderbook_lib::{next_snap, OrderBook, Side};
+use orderbook_lib::orderbook::{OrderBook, Side};
+use orderbook_lib::snap::next_snap;
 use pretty_assertions::assert_eq;
 use rstest::{fixture, rstest};
 

@@ -1,7 +1,7 @@
-use orderbook_lib::next_snap;
-use orderbook_lib::{dbgp, Order, OrderBook, Side};
 // use std::time::SystemTime;
-mod event;
+use orderbook_lib::dbgp;
+use orderbook_lib::orderbook::{Order, OrderBook, Side};
+use orderbook_lib::snap::next_snap;
 
 fn main() {
     dbgp!("Crafting new Orderbook");
