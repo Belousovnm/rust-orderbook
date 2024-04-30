@@ -25,7 +25,7 @@ fn place_order_from_snap(snap: Vec<Snap>, ob: &mut OrderBook) {
     }
 }
 
-pub fn next_snap(snap: Vec<Snap>, ob: &mut OrderBook, offset: Result<Offset, &str>) {
+fn next_snap(snap: Vec<Snap>, ob: &mut OrderBook, offset: Result<Offset, &str>) {
     *ob = OrderBook::new("SPB".to_string());
     match offset.ok() {
         Some((side, price, qty_head, qty, qty_tail, id)) => {
@@ -72,6 +72,12 @@ pub fn next_snap(snap: Vec<Snap>, ob: &mut OrderBook, offset: Result<Offset, &st
             });
         }
         None => place_order_from_snap(snap, ob),
+    }
+}
+
+impl OrderBook {
+    pub fn process(&mut self, snap: Vec<Snap>, offset: Result<Offset, &str>) {
+        next_snap(snap, self, offset);
     }
 }
 

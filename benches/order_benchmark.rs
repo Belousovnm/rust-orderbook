@@ -1,6 +1,6 @@
 use core::time::Duration;
 use criterion::{criterion_group, criterion_main, Criterion};
-use orderbook_lib::{Order, OrderBook, Side};
+use orderbook_lib::orderbook::{Order, OrderBook, Side};
 use rand::Rng;
 
 fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook {
@@ -31,7 +31,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut rng = rand::thread_rng();
     let mut group = c.benchmark_group("order-benchmark");
     group.sample_size(10);
-    group.measurement_time(Duration::new(30, 0));
+    group.measurement_time(Duration::new(20, 0));
     group.bench_function("Match orders", |b| {
         b.iter(|| run_orders(1_000_000, &mut rng))
     });

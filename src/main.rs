@@ -1,7 +1,6 @@
 // use std::time::SystemTime;
 use orderbook_lib::dbgp;
 use orderbook_lib::orderbook::{Order, OrderBook, Side};
-use orderbook_lib::snap::next_snap;
 
 fn main() {
     dbgp!("Crafting new Orderbook");
@@ -12,7 +11,7 @@ fn main() {
         (Side::Bid, 101, 10),
     ];
     // println!("{:?}", SystemTime::now());
-    next_snap(snap.clone(), &mut ob, Err("mock"));
+    ob.process(snap, Err("mock"));
     // if matches! {fr.status, OrderStatus::Filled} {
     //     dbgp!("{:#?}, avg_fill_price {}", fr, fr.avg_fill_price());
     // }
@@ -38,7 +37,7 @@ fn main() {
         (Side::Bid, 100, 10),
         (Side::Bid, 101, 5),
     ];
-    next_snap(snap, &mut ob, offset);
+    ob.process(snap, offset);
 
     dbgp!("{:#?}", ob);
     dbgp!("{:?}", ob.get_bbo());

@@ -2,6 +2,7 @@
 // FEATURE: "Replace" order Type
 // store total qty on level
 // Problem: VecDeque is not contigous?
+// Updates from deltas
 
 pub mod event;
 pub mod orderbook;
