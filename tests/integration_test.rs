@@ -1,7 +1,6 @@
 mod common;
 use orderbook_lib::event::Event;
 use orderbook_lib::orderbook::{OrderBook, Side};
-use orderbook_lib::snap::next_snap;
 use pretty_assertions::assert_eq;
 use rstest::{fixture, rstest};
 
@@ -28,6 +27,6 @@ fn deser_to_ob(deser: Event) {
         (Side::Bid, deser.bid_price, deser.bid_qty),
         (Side::Ask, deser.ask_price, deser.ask_qty),
     ];
-    next_snap(snap, &mut ob, Err("test"));
+    ob.process(snap, Err("test"));
     assert_eq!(ob.get_bbo(), Ok((100, 101, 1)))
 }

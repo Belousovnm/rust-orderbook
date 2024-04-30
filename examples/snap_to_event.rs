@@ -11,7 +11,6 @@
 use orderbook_lib::dbgp;
 use orderbook_lib::event::Event;
 use orderbook_lib::orderbook::{OrderBook, Side};
-use orderbook_lib::snap::next_snap;
 
 fn snap_to_event() {
     dbgp!("Crafting new Orderbook");
@@ -33,7 +32,7 @@ fn snap_to_event() {
             (Side::Bid, event.bid_price, event.bid_qty),
             (Side::Ask, event.ask_price, event.ask_qty),
         ];
-        next_snap(snap, &mut ob, Err("mock"));
+        ob.process(snap, Err("mock"));
     }
     dbgp!("{:#?}", ob);
     dbgp!("{:?}", ob.get_bbo());
