@@ -1,11 +1,13 @@
 mod utils;
 use crate::dbgp;
 use rand::Rng;
+use serde::Serialize;
 use std::collections::{BTreeMap, HashMap, VecDeque};
 
 #[repr(u8)]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Default)]
 pub enum Side {
+    #[default]
     Bid,
     Ask,
 }
@@ -46,7 +48,7 @@ impl ExecutionReport {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default, Clone, Copy)]
 pub struct Order {
     pub id: u64,
     pub side: Side,

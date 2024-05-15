@@ -1,15 +1,32 @@
 // use std::time::SystemTime;
 use orderbook_lib::dbgp;
+use orderbook_lib::event::LimitOrder;
 use orderbook_lib::orderbook::{Order, OrderBook, Side};
+use orderbook_lib::snap::Snap;
 
 fn main() {
-    dbgp!("Crafting new Orderbook");
+    dbgp!("Crafting Orderbook");
     let mut ob = OrderBook::new("SPB".to_string());
-    let snap = vec![
-        (Side::Bid, 99, 10),
-        (Side::Bid, 100, 10),
-        (Side::Bid, 101, 10),
-    ];
+    let snap = Snap {
+        exch_epoch: 0,
+        vec: vec![
+            LimitOrder {
+                side: Side::Bid,
+                price: 99,
+                qty: 10,
+            },
+            LimitOrder {
+                side: Side::Bid,
+                price: 100,
+                qty: 10,
+            },
+            LimitOrder {
+                side: Side::Bid,
+                price: 101,
+                qty: 10,
+            },
+        ],
+    };
     // println!("{:?}", SystemTime::now());
     ob.process(snap, Err("mock"));
     // if matches! {fr.status, OrderStatus::Filled} {
@@ -32,11 +49,26 @@ fn main() {
     let offset = ob.get_offset(trader_order_id);
 
     let mut ob = OrderBook::new("SPB".to_string());
-    let snap = vec![
-        (Side::Bid, 99, 10),
-        (Side::Bid, 100, 10),
-        (Side::Bid, 101, 5),
-    ];
+    let snap = Snap {
+        exch_epoch: 0,
+        vec: vec![
+            LimitOrder {
+                side: Side::Bid,
+                price: 99,
+                qty: 10,
+            },
+            LimitOrder {
+                side: Side::Bid,
+                price: 100,
+                qty: 10,
+            },
+            LimitOrder {
+                side: Side::Bid,
+                price: 101,
+                qty: 5,
+            },
+        ],
+    };
     ob.process(snap, offset);
 
     dbgp!("{:#?}", ob);

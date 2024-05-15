@@ -1,6 +1,33 @@
+use crate::event::LimitOrder;
 use crate::orderbook::{Order, OrderBook, Side};
 
-type Snap = (Side, u64, u64);
+#[derive(Debug, Default)]
+pub struct Snap {
+    pub exch_epoch: u64,
+    pub vec: Vec<LimitOrder>,
+}
+impl Snap {
+    fn new() -> Self {
+        Snap {
+            exch_epoch: 0,
+            vec: Vec::with_capacity(11),
+        }
+    }
+
+    fn push(&mut self, item: LimitOrder) {
+        self.vec.push(item)
+    }
+}
+
+impl IntoIterator for Snap {
+    type Item = LimitOrder;
+    type IntoIter = <Vec<LimitOrder> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.vec.into_iter()
+    }
+}
+
 type Offset = (Side, u64, u64, u64, u64, u64);
 
 // impl From<Snap> for Order {
@@ -14,28 +41,28 @@ type Offset = (Side, u64, u64, u64, u64, u64);
 //     }
 // }
 
-fn place_order_from_snap(snap: Vec<Snap>, ob: &mut OrderBook) {
-    for (id, level) in snap.iter().enumerate() {
+fn place_order_from_snap(snap: Snap, ob: &mut OrderBook) {
+    for (id, level) in snap.into_iter().enumerate() {
         let _ = ob.add_limit_order(Order {
             id: id as u64,
-            side: level.0,
-            price: level.1,
-            qty: level.2,
+            side: level.side,
+            price: level.price,
+            qty: level.qty,
         });
     }
 }
 
-fn next_snap(snap: Vec<Snap>, ob: &mut OrderBook, offset: Result<Offset, &str>) {
+fn next_snap(snap: Snap, ob: &mut OrderBook, offset: Result<Offset, &str>) {
     *ob = OrderBook::new("SPB".to_string());
     match offset.ok() {
         Some((side, price, qty_head, qty, qty_tail, id)) => {
-            let mut filtered_snap = Vec::with_capacity(11);
+            let mut filtered_snap = Snap::new();
             let mut new_qty = qty_head + qty_tail;
-            for level in snap.iter() {
-                if level.1 == price {
-                    new_qty = level.2;
+            for level in snap.into_iter() {
+                if level.price == price {
+                    new_qty = level.qty;
                 } else {
-                    filtered_snap.push(*level)
+                    filtered_snap.push(level)
                 }
             }
             place_order_from_snap(filtered_snap, ob);
@@ -76,7 +103,7 @@ fn next_snap(snap: Vec<Snap>, ob: &mut OrderBook, offset: Result<Offset, &str>) 
 }
 
 impl OrderBook {
-    pub fn process(&mut self, snap: Vec<Snap>, offset: Result<Offset, &str>) {
+    pub fn process(&mut self, snap: Snap, offset: Result<Offset, &str>) {
         next_snap(snap, self, offset);
     }
 }
@@ -90,11 +117,25 @@ mod tests {
 
     #[test]
     fn test_orders_from_snapshot() {
-        let snap = vec![(Side::Bid, 99, 1), (Side::Ask, 101, 1)];
+        let snap = Snap {
+            exch_epoch: 0,
+            vec: vec![
+                LimitOrder {
+                    side: Side::Bid,
+                    price: 99,
+                    qty: 1,
+                },
+                LimitOrder {
+                    side: Side::Ask,
+                    price: 101,
+                    qty: 1,
+                },
+            ],
+        };
         // let offset = Ok((Side::Bid, 101, 0, 1, 0, 999));
         let offset = Err("unittest");
         let mut ob = OrderBook::new("SPB".to_string());
-        next_snap(snap, &mut ob, offset);
+        ob.process(snap, offset);
         assert_eq!(ob.get_bbo().unwrap(), (99, 101, 2));
     }
 }
