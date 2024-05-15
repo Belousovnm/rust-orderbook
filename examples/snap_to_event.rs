@@ -16,10 +16,8 @@ use orderbook_lib::snap::Snap;
 fn snap_to_event() {
     println!("Crafting Orderbook");
     let mut ob = OrderBook::new("SBER".to_string());
-    let mut snap_reader =
-        csv::Reader::from_path("/opt/Zenpy/jupyter/data/voskhod/TQBR/SBER/ob.csv").unwrap();
-    let mut trade_reader =
-        csv::Reader::from_path("/opt/Zenpy/jupyter/data/voskhod/TQBR/SBER/trades.csv").unwrap();
+    let mut snap_reader = csv::Reader::from_path("./data/ob.csv").unwrap();
+    let mut trade_reader = csv::Reader::from_path("./data/orders.csv").unwrap();
     let mut srdr = snap_reader.deserialize::<Snap>();
     let mut trdr = trade_reader.deserialize::<Order>();
     let mut epoch = 0;
@@ -39,10 +37,12 @@ fn snap_to_event() {
     while let Some(Ok(snap)) = srdr.next() {
         let epoch = snap.exch_epoch;
         loop {
-            println!("{} {}", next_order.id, epoch);
+            println!("{} {}", next_order.id, epoch,);
             if next_order.id <= epoch {
                 let exec_report = ob.add_limit_order(next_order);
+                println!("{}", next_order.price);
                 println!("{:#?}", exec_report);
+                println!("{:#?}", ob.get_bbo());
                 if let Some(Ok(order)) = trdr.next() {
                     next_order = order;
                 } else {
@@ -50,6 +50,7 @@ fn snap_to_event() {
                 }
             } else if next_order.id > epoch {
                 ob.process(snap, Err(""));
+                println!("{:#?}", ob.get_bbo());
                 break;
             }
         }

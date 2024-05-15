@@ -460,8 +460,8 @@ impl<'de> Deserialize<'de> for Order {
                     }
                 }
                 let side = match side.unwrap() {
-                    0 => Side::Bid,
-                    1 => Side::Ask,
+                    0 => Side::Ask,
+                    1 => Side::Bid,
                     _ => unreachable!(),
                 };
 
