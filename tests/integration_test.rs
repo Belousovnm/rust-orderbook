@@ -1,6 +1,6 @@
 mod common;
-use orderbook_lib::orderbook::OrderBook;
-use orderbook_lib::snap::Snap;
+use orderbook::orderbook::OrderBook;
+use orderbook::snap::Snap;
 use pretty_assertions::assert_eq;
 use rstest::{fixture, rstest};
 

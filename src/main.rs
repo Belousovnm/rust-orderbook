@@ -1,8 +1,11 @@
 // use std::time::SystemTime;
-use orderbook_lib::dbgp;
-use orderbook_lib::event::LimitOrder;
-use orderbook_lib::orderbook::{Order, OrderBook, Side};
-use orderbook_lib::snap::Snap;
+mod event;
+mod orderbook;
+mod snap;
+mod utils;
+use event::LimitOrder;
+use orderbook::{Order, OrderBook, Side};
+use snap::Snap;
 
 fn main() {
     dbgp!("Crafting Orderbook");
@@ -72,6 +75,6 @@ fn main() {
     ob.process(snap, offset);
 
     dbgp!("{:#?}", ob);
-    dbgp!("{:?}", ob.get_bbo());
+    let _ = ob.get_bbo();
     dbgp!("Done!");
 }

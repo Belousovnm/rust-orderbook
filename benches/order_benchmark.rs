@@ -1,6 +1,6 @@
 use core::time::Duration;
 use criterion::{criterion_group, criterion_main, Criterion};
-use orderbook_lib::orderbook::{Order, OrderBook, Side};
+use orderbook::orderbook::{Order, OrderBook, Side};
 use rand::Rng;
 
 fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook {

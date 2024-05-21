@@ -1,4 +1,3 @@
-mod utils;
 use crate::dbgp;
 use rand::Rng;
 use serde::Serialize;

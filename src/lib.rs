@@ -7,3 +7,4 @@
 pub mod event;
 pub mod orderbook;
 pub mod snap;
+pub mod utils;

@@ -4,11 +4,6 @@ use rand::{
     Rng,
 };
 
-#[macro_export]
-macro_rules! dbgp {
-    ($($arg:tt)*) => (#[cfg(debug_assertions)] println!($($arg)*));
-}
-
 impl Distribution<Side> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Side {
         match rng.gen_range(0..=1) {
