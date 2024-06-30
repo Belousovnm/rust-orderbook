@@ -1,34 +1,42 @@
-// use polars::prelude::*;
-// const PATH: &'static str = "/opt/Zenpy/jupyter/data/voskhod/TQBR/CBOM/CBOM.2023-11-20.parquet";
-//
-// fn main() -> PolarsResult<()> {
-//     let df = LazyFrame::scan_parquet(PATH, ScanArgsParquet::default())?
-//         .select([all()])
-//         .collect()?;
-//     dbg!(df);
-//     Ok(())
-// };
 use orderbook::dbgp;
+use orderbook::indicators::Indicator;
+use orderbook::management::OrderManagementSystem;
 use orderbook::orderbook::{Order, OrderBook};
 use orderbook::snap::Snap;
+use orderbook::strategy::{Strategy, StrategyName};
 
 fn snap_to_event() {
     dbgp!("Crafting Orderbook");
     let mut ob = OrderBook::new("SecName".to_string());
-    let mut snap_reader =
-        csv::Reader::from_path("/opt/Zenpy/jupyter/data/voskhod/ob_GAZP.csv").unwrap();
-    let mut trade_reader =
-        csv::Reader::from_path("/opt/Zenpy/jupyter/data/voskhod/orders_GAZP.csv").unwrap();
+    let mut snap_reader = csv::Reader::from_path("data/ob.csv").unwrap();
+    let mut trade_reader = csv::Reader::from_path("data/orders.csv").unwrap();
     let mut srdr = snap_reader.deserialize::<Snap>();
     let mut trdr = trade_reader.deserialize::<Order>();
     let mut epoch = 0;
     let mut next_order = Order::default();
+    let offset = Err("First pass");
 
+    // Setup Strat
+    let mut strat = Strategy::new(StrategyName::TestStrategy);
+    strat.buy_criterion = 0.0;
+
+    // Setup OMS
+    let oms = OrderManagementSystem {
+        strategy: strat,
+        active_orders: Vec::with_capacity(2),
+        strategy_signals: Vec::with_capacity(2),
+    };
+
+    // Setup Indicator
+    let midprice = Indicator::Midprice;
+
+    // Load first snapshot
     if let Some(Ok(first_snap)) = srdr.next() {
         epoch = first_snap.exch_epoch;
         ob.process(first_snap, Err("First snap"));
     }
 
+    // Skip all trades that occured before the first snapshot
     while next_order.id < epoch {
         if let Some(Ok(order)) = trdr.next() {
             next_order = order;
@@ -38,17 +46,30 @@ fn snap_to_event() {
     'a: while let Some(Ok(snap)) = srdr.next() {
         let epoch = snap.exch_epoch;
         loop {
+            // If order before next update
             if next_order.id <= epoch {
+                // Apply order
                 let exec_report = ob.add_limit_order(next_order);
                 dbgp!("{:#?}", exec_report);
+                // Load next order
                 if let Some(Ok(order)) = trdr.next() {
                     next_order = order;
                 } else {
+                    // Replay until last order
                     break 'a;
                 }
+            // If next snap before order
             } else if next_order.id > epoch {
-                ob.process(snap, Err(""));
-                let _ = ob.get_bbo();
+                // Load next snap
+                ob.process(snap, offset);
+
+                // Trader's move
+                if let Ok(m) = midprice.evaluate(&ob) {
+                    let trader_exec_report = oms.send_buy_order(&mut ob, m);
+                    dbgp!("{:#?}", trader_exec_report);
+                    let offset = ob.get_offset(666);
+                }
+
                 break;
             }
         }
