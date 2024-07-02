@@ -9,6 +9,7 @@ pub enum StrategyName {
     TestStrategy,
 }
 
+#[allow(dead_code)]
 pub struct Strategy {
     name: StrategyName,
     pub buy_criterion: f32,

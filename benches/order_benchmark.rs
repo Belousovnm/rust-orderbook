@@ -4,7 +4,7 @@ use orderbook::orderbook::{Order, OrderBook, Side};
 use rand::Rng;
 
 fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook {
-    let mut ob = OrderBook::new("SPB".to_string());
+    let mut ob = OrderBook::new("BENCH".to_string());
     let mut order_id = 0;
     for _ in 0..num_orders {
         order_id += 1;
@@ -14,16 +14,18 @@ fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook 
             qty: rng.gen_range(10..=50),
             id: order_id,
         });
+
         ob.add_limit_order(Order {
             side: Side::Ask,
             price: rng.gen_range(98..110),
             qty: rng.gen_range(1..=500),
             id: order_id,
         });
-        // if order_id > 100 {
-        //     let _ = ob.cancel_order(order_id - 100);
-        // };
+        if order_id > 100 {
+            let _ = ob.cancel_order(order_id - 100);
+        };
     }
+
     ob
 }
 

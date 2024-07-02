@@ -2,6 +2,7 @@ use crate::event::LimitOrder;
 use crate::orderbook::{Order, OrderBook, Side};
 
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 pub struct Snap {
     pub exch_epoch: u64,
     pub vec: Vec<LimitOrder>,

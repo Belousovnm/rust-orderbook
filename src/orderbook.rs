@@ -21,7 +21,7 @@ pub enum OrderStatus {
 
 #[derive(Debug)]
 pub struct ExecutionReport {
-    // Orders filled (qty, price)
+    // Orders filled (id, qty, price)
     pub filled_orders: Vec<(u64, u64, u64)>,
     pub remaining_qty: u64,
     pub status: OrderStatus,
@@ -36,14 +36,18 @@ impl ExecutionReport {
         }
     }
 
-    pub fn avg_fill_price(&self) -> f32 {
+    #[allow(dead_code)]
+    pub fn avg_fill_price(&self) -> Option<f32> {
+        if self.filled_orders.len() == 0 {
+            return None;
+        }
         let mut total_sum_paid = 0;
         let mut total_qty = 0;
         for (_, q, p) in &self.filled_orders {
             total_sum_paid += p * q;
             total_qty += q;
         }
-        total_sum_paid as f32 / total_qty as f32
+        Some(total_sum_paid as f32 / total_qty as f32)
     }
 }
 
@@ -56,6 +60,7 @@ pub struct Order {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 struct HalfBook {
     side: Side,
     price_map: BTreeMap<u64, usize>,
@@ -80,6 +85,7 @@ impl HalfBook {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct OrderBook {
     symbol: String,
     best_bid_price: Option<u64>,
@@ -89,6 +95,7 @@ pub struct OrderBook {
     order_loc: HashMap<u64, (Side, usize, u64)>,
 }
 
+#[allow(dead_code)]
 impl OrderBook {
     pub fn new(symbol: String) -> Self {
         OrderBook {

@@ -23,6 +23,7 @@ pub fn midprice(bid: u64, ask: u64) -> f32 {
 mod test {
     use super::*;
     use crate::orderbook::{Order, Side};
+    use pretty_assertions::assert_eq;
     use rstest::rstest;
 
     fn empty_ob() -> OrderBook {

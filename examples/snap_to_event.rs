@@ -5,6 +5,7 @@ use orderbook::orderbook::{Order, OrderBook};
 use orderbook::snap::Snap;
 use orderbook::strategy::{Strategy, StrategyName};
 
+#[allow(unused_variables)]
 fn snap_to_event() {
     dbgp!("Crafting Orderbook");
     let mut ob = OrderBook::new("SecName".to_string());
