@@ -9,7 +9,7 @@ impl Indicator {
         match self {
             Indicator::Midprice => {
                 let (bid, ask, _spread) = ob.get_bbo()?;
-                return Ok(midprice(bid, ask));
+                Ok(midprice(bid, ask))
             }
         }
     }

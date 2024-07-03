@@ -53,8 +53,9 @@ fn place_order_from_snap(snap: Snap, ob: &mut OrderBook) {
     }
 }
 
-fn next_snap(snap: Snap, ob: &mut OrderBook, offset: Result<Offset, &str>) {
-    *ob = OrderBook::new("SPB".to_string());
+// need to keep sec_name
+fn next_snap(snap: Snap, offset: Result<Offset, &str>) -> OrderBook {
+    let mut ob = OrderBook::new("SNAP".to_string());
     match offset.ok() {
         Some((side, price, qty_head, qty, qty_tail, id)) => {
             let mut filtered_snap = Snap::new();
@@ -66,7 +67,7 @@ fn next_snap(snap: Snap, ob: &mut OrderBook, offset: Result<Offset, &str>) {
                     filtered_snap.push(level)
                 }
             }
-            place_order_from_snap(filtered_snap, ob);
+            place_order_from_snap(filtered_snap, &mut ob);
             let (qty_head, qty_tail) = if new_qty < qty_head + qty_tail {
                 let need_to_cut = qty_tail + qty_head - new_qty;
                 let cut_qty_tail = qty_tail.min(need_to_cut);
@@ -99,13 +100,17 @@ fn next_snap(snap: Snap, ob: &mut OrderBook, offset: Result<Offset, &str>) {
                 qty: qty_tail,
             });
         }
-        None => place_order_from_snap(snap, ob),
+        None => {
+            place_order_from_snap(snap, &mut ob);
+        }
     }
+    ob
 }
 
 impl OrderBook {
-    pub fn process(&mut self, snap: Snap, offset: Result<Offset, &str>) {
-        next_snap(snap, self, offset);
+    pub fn process(&self, snap: Snap, offset_id: u64) -> OrderBook {
+        let offset = self.get_offset(offset_id);
+        next_snap(snap, offset)
     }
 }
 
@@ -114,6 +119,7 @@ mod tests {
 
     // use crate::{next_snap, OrderBook, Side};
     use super::*;
+    use crate::orderbook::Side;
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -134,9 +140,8 @@ mod tests {
             ],
         };
         // let offset = Ok((Side::Bid, 101, 0, 1, 0, 999));
-        let offset = Err("unittest");
-        let mut ob = OrderBook::new("SPB".to_string());
-        ob.process(snap, offset);
+        let mut ob = OrderBook::new("TEST".to_string());
+        ob = ob.process(snap, 999);
         assert_eq!(ob.get_bbo().unwrap(), (99, 101, 2));
     }
 }

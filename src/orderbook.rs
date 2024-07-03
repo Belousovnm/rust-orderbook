@@ -38,7 +38,7 @@ impl ExecutionReport {
 
     #[allow(dead_code)]
     pub fn avg_fill_price(&self) -> Option<f32> {
-        if self.filled_orders.len() == 0 {
+        if self.filled_orders.is_empty() {
             return None;
         }
         let mut total_sum_paid = 0;
@@ -92,7 +92,8 @@ pub struct OrderBook {
     best_offer_price: Option<u64>,
     bid_book: HalfBook,
     ask_book: HalfBook,
-    order_loc: HashMap<u64, (Side, usize, u64)>,
+    // id, (side, price_level, price)
+    pub order_loc: HashMap<u64, (Side, usize, u64)>,
 }
 
 #[allow(dead_code)]
@@ -117,11 +118,11 @@ impl OrderBook {
             let currdeque = book.price_levels.get_mut(*price_level).unwrap();
             currdeque.retain(|x| x.id != order_id);
             if currdeque.is_empty() {
-                book.price_map.remove(&price);
+                book.price_map.remove(price);
             }
-            if self.best_bid_price.is_some_and(|b| b == *price) {
-                self.update_bbo()
-            } else if self.best_offer_price.is_some_and(|a| a == *price) {
+            if self.best_bid_price.is_some_and(|b| b == *price)
+                | self.best_offer_price.is_some_and(|a| a == *price)
+            {
                 self.update_bbo()
             }
             self.order_loc.remove(&order_id);
@@ -327,10 +328,10 @@ impl OrderBook {
             if self.best_bid_price.is_none() | self.best_bid_price.is_some_and(|b| price > b) {
                 self.update_bbo()
             }
-        } else if side == Side::Ask {
-            if self.best_offer_price.is_none() | self.best_offer_price.is_some_and(|a| price < a) {
-                self.update_bbo()
-            }
+        } else if side == Side::Ask
+            && self.best_offer_price.is_none() | self.best_offer_price.is_some_and(|a| price < a)
+        {
+            self.update_bbo()
         }
         exec_report.status = status;
         exec_report.remaining_qty = remaining_order_qty;
@@ -363,7 +364,6 @@ impl OrderBook {
             }
         }
     }
-
     pub fn get_offset(&self, order_id: u64) -> Result<(Side, u64, u64, u64, u64, u64), &str> {
         if let Some((side, price_level, price)) = self.order_loc.get(&order_id) {
             let book = match side {

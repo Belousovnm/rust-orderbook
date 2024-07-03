@@ -10,16 +10,15 @@ pub struct OrderManagementSystem {
 }
 
 impl OrderManagementSystem {
-    pub fn send_buy_order(&self, ob: &mut OrderBook, ref_price: f32) -> ExecutionReport {
+    pub fn calculate_buy_order(&self, ref_price: f32, id: u64) -> Order {
         let price = (ref_price * (1.0 + self.strategy.buy_criterion)).floor() as u64;
         let qty = 10;
-        let order = Order {
-            id: 666,
+        Order {
+            id,
             side: Side::Bid,
             price,
             qty,
-        };
-        ob.add_limit_order(order)
+        }
     }
 
     pub fn send_sell_order(&self, ob: &mut OrderBook, ref_price: f32) -> ExecutionReport {

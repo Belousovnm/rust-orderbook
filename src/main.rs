@@ -9,7 +9,7 @@ use snap::Snap;
 
 fn main() {
     dbgp!("Crafting Orderbook");
-    let mut ob = OrderBook::new("SPB".to_string());
+    let mut ob = OrderBook::new("MAIN".to_string());
     let snap = Snap {
         exch_epoch: 0,
         vec: vec![
@@ -31,7 +31,7 @@ fn main() {
         ],
     };
     // println!("{:?}", SystemTime::now());
-    ob.process(snap, Err("mock"));
+    ob.process(snap, 0);
     // if matches! {fr.status, OrderStatus::Filled} {
     //     dbgp!("{:#?}, avg_fill_price {}", fr, fr.avg_fill_price());
     // }
@@ -49,9 +49,8 @@ fn main() {
         qty: 10,
         id: 999,
     });
-    let offset = ob.get_offset(trader_order_id);
 
-    let mut ob = OrderBook::new("SPB".to_string());
+    let mut ob = OrderBook::new("MAIN".to_string());
     let snap = Snap {
         exch_epoch: 0,
         vec: vec![
@@ -72,7 +71,7 @@ fn main() {
             },
         ],
     };
-    ob.process(snap, offset);
+    ob = ob.process(snap, trader_order_id);
 
     dbgp!("{:#?}", ob);
     let _ = ob.get_bbo();

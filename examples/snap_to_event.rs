@@ -5,7 +5,7 @@ use orderbook::orderbook::{Order, OrderBook};
 use orderbook::snap::Snap;
 use orderbook::strategy::{Strategy, StrategyName};
 
-#[allow(unused_variables)]
+// #[allow(unused_variables)]
 fn snap_to_event() {
     dbgp!("Crafting Orderbook");
     let mut ob = OrderBook::new("SecName".to_string());
@@ -15,7 +15,7 @@ fn snap_to_event() {
     let mut trdr = trade_reader.deserialize::<Order>();
     let mut epoch = 0;
     let mut next_order = Order::default();
-    let offset = Err("First pass");
+    let trader_id = 777;
 
     // Setup Strat
     let mut strat = Strategy::new(StrategyName::TestStrategy);
@@ -34,7 +34,7 @@ fn snap_to_event() {
     // Load first snapshot
     if let Some(Ok(first_snap)) = srdr.next() {
         epoch = first_snap.exch_epoch;
-        ob.process(first_snap, Err("First snap"));
+        ob = ob.process(first_snap, trader_id);
     }
 
     // Skip all trades that occured before the first snapshot
@@ -52,6 +52,22 @@ fn snap_to_event() {
                 // Apply order
                 let exec_report = ob.add_limit_order(next_order);
                 dbgp!("{:#?}", exec_report);
+
+                // if trader was filled
+                if let Some(key) = exec_report
+                    .filled_orders
+                    .iter()
+                    .position(|&o| o.0 == trader_id)
+                {
+                    dbgp!(
+                        "[ KEY ] qty = {:?}, price = {:?}",
+                        exec_report.filled_orders[key].1,
+                        exec_report.filled_orders[key].2
+                    );
+                }
+
+                // exec_report.filled_orders
+
                 // Load next order
                 if let Some(Ok(order)) = trdr.next() {
                     next_order = order;
@@ -62,15 +78,29 @@ fn snap_to_event() {
             // If next snap before order
             } else if next_order.id > epoch {
                 // Load next snap
-                ob.process(snap, offset);
-
+                ob = ob.process(snap, trader_id);
                 // Trader's move
                 if let Ok(m) = midprice.evaluate(&ob) {
-                    let trader_exec_report = oms.send_buy_order(&mut ob, m);
-                    dbgp!("{:#?}", trader_exec_report);
-                    let offset = ob.get_offset(666);
+                    let trader_order = oms.calculate_buy_order(m, trader_id);
+                    match ob.order_loc.get(&trader_id) {
+                        None => {
+                            dbgp!("[ STRAT] Order not found, place new order");
+                            ob.add_limit_order(trader_order);
+                        }
+                        Some((_, _, price)) if *price == trader_order.price => {
+                            dbgp!("[ STRAT] Order found, passing");
+                        }
+                        Some((_, _, price)) => {
+                            dbgp!("[ STRAT] Order found, need price update, place new order");
+                            dbgp!(
+                                "[ STRAT] Old price {}, New Price {}",
+                                *price,
+                                trader_order.price
+                            );
+                            ob.add_limit_order(trader_order);
+                        }
+                    }
                 }
-
                 break;
             }
         }
