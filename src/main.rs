@@ -9,6 +9,7 @@ use snap::Snap;
 
 fn main() {
     dbgp!("Crafting Orderbook");
+    let trader_order_id = 777;
     let mut ob = OrderBook::new("MAIN".to_string());
     let snap = Snap {
         exch_epoch: 0,
@@ -31,12 +32,11 @@ fn main() {
         ],
     };
     // println!("{:?}", SystemTime::now());
-    ob.process(snap, 0);
+    ob.process(snap, (trader_order_id, 0));
     // if matches! {fr.status, OrderStatus::Filled} {
     //     dbgp!("{:#?}, avg_fill_price {}", fr, fr.avg_fill_price());
     // }
     // println!("{:?}", SystemTime::now());
-    let trader_order_id = 777;
     let _ = ob.add_limit_order(Order {
         side: Side::Bid,
         price: 101,
@@ -71,7 +71,7 @@ fn main() {
             },
         ],
     };
-    ob = ob.process(snap, trader_order_id);
+    ob = ob.process(snap, (trader_order_id, 0));
 
     dbgp!("{:#?}", ob);
     let _ = ob.get_bbo();

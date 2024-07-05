@@ -25,6 +25,6 @@ fn deser_to_ob(deser: Snap) {
     let mut ob = OrderBook::new("test".to_string());
 
     let snap = deser;
-    ob = ob.process(snap, 0);
+    ob = ob.process(snap, (0, 0));
     assert_eq!(ob.get_bbo(), Ok((10, 11, 1)))
 }

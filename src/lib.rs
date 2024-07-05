@@ -5,6 +5,7 @@
 // Problem: VecDeque is not contigous?
 // Updates from deltas
 
+pub mod account;
 pub mod event;
 pub mod indicators;
 pub mod management;

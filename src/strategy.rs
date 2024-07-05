@@ -13,9 +13,10 @@ pub struct Strategy {
     name: StrategyName,
     pub buy_criterion: f32,
     pub sell_criterion: f32,
-    master_position: i32,
-    buy_position_limit: i32,
-    sell_position_limit: i32,
+    pub master_position: i32,
+    pub buy_position_limit: i32,
+    pub sell_position_limit: i32,
+    pub qty: u64,
 }
 
 impl Strategy {
@@ -27,6 +28,7 @@ impl Strategy {
             master_position: 0,
             buy_position_limit: 0,
             sell_position_limit: 0,
+            qty: 0,
         }
     }
 }

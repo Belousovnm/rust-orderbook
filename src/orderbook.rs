@@ -22,6 +22,7 @@ pub enum OrderStatus {
 #[derive(Debug)]
 pub struct ExecutionReport {
     // Orders filled (id, qty, price)
+    pub taker_side: Side,
     pub filled_orders: Vec<(u64, u64, u64)>,
     pub remaining_qty: u64,
     pub status: OrderStatus,
@@ -30,6 +31,7 @@ pub struct ExecutionReport {
 impl ExecutionReport {
     fn new() -> Self {
         ExecutionReport {
+            taker_side: Side::Bid,
             filled_orders: Vec::new(),
             remaining_qty: u64::MAX,
             status: OrderStatus::Uninitialized,
@@ -59,9 +61,9 @@ pub struct Order {
     pub qty: u64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
-struct HalfBook {
+pub struct HalfBook {
     side: Side,
     price_map: BTreeMap<u64, usize>,
     price_levels: Vec<VecDeque<Order>>,
@@ -214,7 +216,7 @@ impl OrderBook {
         let mut front_dec = 0;
         for o in price_level.iter() {
             if *incoming_order_qty > 0 {
-                if o.qty < *incoming_order_qty {
+                if o.qty <= *incoming_order_qty {
                     dbgp!("[ FILL ]    Incomplete {}", o.price);
                     *incoming_order_qty -= o.qty;
                     done_qty.push(o.qty);
@@ -230,10 +232,11 @@ impl OrderBook {
                 break;
             }
         }
-        for _ in 1..=incomplete_fills {
+        for _ in 0..incomplete_fills {
             let pop = price_level.pop_front();
             let id = &pop.unwrap().id;
             order_loc.remove(id);
+            dbgp!("MATCHING ENGINE removed order {}", id);
             ids.push(*id)
         }
         if front_dec > 0 {
@@ -333,8 +336,12 @@ impl OrderBook {
         {
             self.update_bbo()
         }
+        exec_report.taker_side = side;
         exec_report.status = status;
         exec_report.remaining_qty = remaining_order_qty;
+        if order_qty == 0 {
+            dbgp!("WTF ORDER QTY 0! IN ORDER {}", order_id);
+        }
         exec_report
     }
 
@@ -342,25 +349,21 @@ impl OrderBook {
     pub fn get_bbo(&self) -> Result<(u64, u64, u64), &str> {
         match (self.best_bid_price, self.best_offer_price) {
             (None, None) => Err("Both bid and offer HalfBooks are empty"),
-            (Some(_), None) => Err("Offer HalfBook is empty"),
-            (None, Some(_)) => Err("Bid HalfBook is empty"),
-            (Some(_), Some(_)) => {
-                let total_bid_qty = self.bid_book.get_total_qty(self.best_bid_price.unwrap());
-                let total_ask_qty = self.ask_book.get_total_qty(self.best_offer_price.unwrap());
+            (Some(_bid), None) => Err("Offer HalfBook is empty"),
+            (None, Some(_ask)) => Err("Bid HalfBook is empty"),
+            (Some(bid_price), Some(ask_price)) => {
+                let total_bid_qty = self.bid_book.get_total_qty(bid_price);
+                let total_ask_qty = self.ask_book.get_total_qty(ask_price);
                 dbgp!(
                     "[ BBO  ] {:?}@{} x {:?}@{}",
                     total_bid_qty,
-                    self.best_bid_price.unwrap(),
+                    bid_price,
                     total_ask_qty,
-                    self.best_offer_price.unwrap(),
+                    ask_price,
                 );
-                let spread = self.best_offer_price.unwrap() - self.best_bid_price.unwrap();
+                let spread = ask_price - bid_price;
                 dbgp!("[ BBO  ] Spread is {:.6},", spread);
-                Ok((
-                    self.best_bid_price.unwrap(),
-                    self.best_offer_price.unwrap(),
-                    spread,
-                ))
+                Ok((bid_price, ask_price, spread))
             }
         }
     }
@@ -390,5 +393,17 @@ impl OrderBook {
         } else {
             Err("No such order id")
         }
+    }
+
+    pub fn get_order(&self, order_id: u64) -> Option<&Order> {
+        let (side, price_level, _) = self.order_loc.get(&order_id)?;
+        let book = match side {
+            Side::Bid => &self.bid_book,
+            Side::Ask => &self.ask_book,
+        };
+        let currdeque = book.price_levels.get(*price_level).unwrap();
+        let mut order = currdeque.iter().filter(|o| o.id == order_id);
+
+        Some(order.next()?)
     }
 }
