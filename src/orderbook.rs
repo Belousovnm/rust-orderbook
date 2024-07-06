@@ -1,6 +1,7 @@
 use crate::dbgp;
 use rand::Rng;
 use serde::Serialize;
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashMap, VecDeque};
 
 #[repr(u8)]
@@ -216,21 +217,25 @@ impl OrderBook {
         let mut front_dec = 0;
         for o in price_level.iter() {
             if *incoming_order_qty > 0 {
-                if o.qty < *incoming_order_qty {
-                    dbgp!("[ FILL ]    Incomplete {}", o.price);
-                    *incoming_order_qty -= o.qty;
-                    done_qty.push(o.qty);
-                    incomplete_fills += 1;
-                } else if o.qty == *incoming_order_qty {
-                    dbgp!("[ FILL ]    Complete {}", o.price);
-                    done_qty.push(o.qty);
-                    incomplete_fills += 1;
-                    *incoming_order_qty = 0;
-                } else {
-                    dbgp!("[ FILL ]    Complete {}", o.price);
-                    done_qty.push(*incoming_order_qty);
-                    front_dec = *incoming_order_qty;
-                    *incoming_order_qty = 0;
+                match o.qty.cmp(incoming_order_qty) {
+                    Ordering::Less => {
+                        dbgp!("[ FILL ]    Incomplete {}", o.price);
+                        *incoming_order_qty -= o.qty;
+                        done_qty.push(o.qty);
+                        incomplete_fills += 1;
+                    }
+                    Ordering::Equal => {
+                        dbgp!("[ FILL ]    Complete {}", o.price);
+                        done_qty.push(o.qty);
+                        incomplete_fills += 1;
+                        *incoming_order_qty = 0;
+                    }
+                    Ordering::Greater => {
+                        dbgp!("[ FILL ]    Complete {}", o.price);
+                        done_qty.push(*incoming_order_qty);
+                        front_dec = *incoming_order_qty;
+                        *incoming_order_qty = 0;
+                    }
                 }
             } else {
                 break;
@@ -240,7 +245,7 @@ impl OrderBook {
             let pop = price_level.pop_front();
             let id = &pop.unwrap().id;
             order_loc.remove(id);
-            dbgp!("MATCHING ENGINE removed order {}", id);
+            // dbgp!("MATCHING ENGINE removed order {}", id);
             ids.push(*id)
         }
         if front_dec > 0 {
@@ -280,7 +285,6 @@ impl OrderBook {
                             &mut remaining_order_qty,
                             &mut self.order_loc,
                         );
-                        dbgp!("VEC {:?}", id_vec);
                         for i in 0..id_vec.len() {
                             dbgp!("[ INFO ]    Matched {} {}@{}", id_vec[i], qty_vec[i], x);
                             exec_report.filled_orders.push((id_vec[i], qty_vec[i], *x));
@@ -408,7 +412,6 @@ impl OrderBook {
         };
         let currdeque = book.price_levels.get(*price_level).unwrap();
         let mut order = currdeque.iter().filter(|o| o.id == order_id);
-
-        Some(order.next()?)
+        order.next()
     }
 }

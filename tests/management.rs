@@ -9,7 +9,7 @@ use pretty_assertions::assert_eq;
 use rstest::rstest;
 
 #[rstest]
-#[case(empty_ob(), Err("Both bid and offer HalfBooks are empty"))]
+#[case(empty_ob(), Err("Missing Ref Price"))]
 #[case(full_ob(), Ok(Order{id: 777, side: Side::Bid, price: 100, qty: 10}))]
 fn ref_price_to_order_test(#[case] ob: OrderBook, #[case] expected: Result<Order, &str>) {
     let mut strategy = Strategy::new(StrategyName::TestStrategy);

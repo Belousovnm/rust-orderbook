@@ -12,7 +12,7 @@ pub struct OrderManagementSystem {
     pub strategy_signals: Vec<Order>,
 }
 
-impl<'a> OrderManagementSystem {
+impl<'a, 'b> OrderManagementSystem {
     pub fn new(strategy: Strategy, account: TradingAccount) -> Self {
         Self {
             strategy,
@@ -24,10 +24,11 @@ impl<'a> OrderManagementSystem {
 
     pub fn calculate_buy_order(
         &'a self,
-        ref_price: Result<f32, &'a str>,
+        ref_price: Option<f32>,
         id: u64,
-    ) -> Result<Order, &'a str> {
-        let price = (ref_price? * (1.0 + self.strategy.buy_criterion)).floor() as u64;
+    ) -> Result<Order, &'b str> {
+        let price = (ref_price.ok_or("Missing Ref Price")? * (1.0 + self.strategy.buy_criterion))
+            .floor() as u64;
         let free_qty = if self.strategy.buy_position_limit - self.strategy.master_position > 0 {
             (self.strategy.buy_position_limit - self.strategy.master_position) as u64
         } else {
@@ -54,10 +55,11 @@ impl<'a> OrderManagementSystem {
 
     pub fn calculate_sell_order(
         &'a self,
-        ref_price: Result<f32, &'a str>,
+        ref_price: Option<f32>,
         id: u64,
-    ) -> Result<Order, &'a str> {
-        let price = (ref_price? * (1.0 + self.strategy.sell_criterion)).ceil() as u64;
+    ) -> Result<Order, &'b str> {
+        let price = (ref_price.ok_or("Missing Ref Price")? * (1.0 + self.strategy.sell_criterion))
+            .ceil() as u64;
         let free_qty = if -self.strategy.sell_position_limit + self.strategy.master_position > 0 {
             (-self.strategy.sell_position_limit + self.strategy.master_position) as u64
         } else {

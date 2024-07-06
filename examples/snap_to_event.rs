@@ -25,10 +25,10 @@ fn snap_to_event() {
 
     // Setup Strat
     let mut strat = Strategy::new(StrategyName::TestStrategy);
-    strat.buy_criterion = -0.0002;
-    strat.sell_criterion = 0.0002;
-    strat.buy_position_limit = 100;
-    strat.sell_position_limit = -100;
+    strat.buy_criterion = 0.00001;
+    strat.sell_criterion = 0.00001;
+    strat.buy_position_limit = 10000;
+    strat.sell_position_limit = -10000;
     strat.qty = 100;
 
     // Setup account
@@ -63,8 +63,8 @@ fn snap_to_event() {
                 dbgp!("{:#?}", exec_report);
                 let prev_account_balance = oms.account.balance;
                 oms.update(exec_report, (trader_buy_id, trader_sell_id));
-                dbgp!("POS {:#?}", oms.strategy.master_position);
-                dbgp!("ACC {:#?}", oms.account.balance);
+                // dbgp!("POS {:#?}", oms.strategy.master_position);
+                // dbgp!("ACC {:#?}", oms.account.balance);
                 trading_volume += (oms.account.balance - prev_account_balance).abs();
 
                 // Load next order
@@ -80,7 +80,7 @@ fn snap_to_event() {
                 ob = ob.process(snap, (trader_buy_id, trader_sell_id));
                 // Trader's move
                 let m = midprice.evaluate(&ob);
-                dbgp!("POS {:#?}", oms.strategy.master_position);
+                // dbgp!("POS {:#?}", oms.strategy.master_position);
                 if let Ok(buy_order) = oms.calculate_buy_order(m, trader_buy_id) {
                     match ob.order_loc.get(&trader_buy_id) {
                         None => {
@@ -105,8 +105,7 @@ fn snap_to_event() {
                     }
                 }
 
-                let m = midprice.evaluate(&ob);
-                dbgp!("POS {:#?}", oms.strategy.master_position);
+                // dbgp!("POS {:#?}", oms.strategy.master_position);
                 if let Ok(sell_order) = oms.calculate_sell_order(m, trader_sell_id) {
                     match ob.order_loc.get(&trader_sell_id) {
                         None => {
