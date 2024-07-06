@@ -1,5 +1,6 @@
 mod common;
-use orderbook::orderbook::OrderBook;
+use orderbook::event::LimitOrder;
+use orderbook::orderbook::{Order, OrderBook, Side};
 use orderbook::snap::Snap;
 use pretty_assertions::assert_eq;
 use rstest::{fixture, rstest};
@@ -27,4 +28,76 @@ fn deser_to_ob(deser: Snap) {
     let snap = deser;
     ob = ob.process(snap, (0, 0));
     assert_eq!(ob.get_bbo(), Ok((10, 11, 1)))
+}
+
+#[test]
+fn exec_report_test() {
+    let trader_order_id = 333;
+    let mut ob = OrderBook::new("MAIN".to_string());
+    let snap = Snap {
+        exch_epoch: 0,
+        vec: vec![
+            LimitOrder {
+                side: Side::Ask,
+                price: 99,
+                qty: 100,
+            },
+            LimitOrder {
+                side: Side::Ask,
+                price: 100,
+                qty: 10,
+            },
+            LimitOrder {
+                side: Side::Ask,
+                price: 101,
+                qty: 10,
+            },
+        ],
+    };
+    // println!("{:?}", SystemTime::now());
+    ob = ob.process(snap, (909, trader_order_id));
+    // if matches! {fr.status, OrderStatus::Filled} {
+    //     dbgp!("{:#?}, avg_fill_price {}", fr, fr.avg_fill_price());
+    // }
+    // println!("{:?}", SystemTime::now());
+    let _ = ob.add_limit_order(Order {
+        side: Side::Ask,
+        price: 99,
+        qty: 10,
+        id: trader_order_id,
+    });
+
+    let snap = Snap {
+        exch_epoch: 0,
+        vec: vec![
+            LimitOrder {
+                side: Side::Ask,
+                price: 99,
+                qty: 150,
+            },
+            LimitOrder {
+                side: Side::Ask,
+                price: 100,
+                qty: 10,
+            },
+            LimitOrder {
+                side: Side::Ask,
+                price: 101,
+                qty: 5,
+            },
+        ],
+    };
+    ob = ob.process(snap, (909, trader_order_id));
+
+    let exec_report = ob.add_limit_order(Order {
+        side: Side::Bid,
+        price: 99,
+        qty: 135,
+        id: 1010,
+    });
+    let mut filled_orders = Vec::new();
+    filled_orders.push((222, 100, 99));
+    filled_orders.push((333, 10, 99));
+    filled_orders.push((444, 25, 99));
+    assert_eq!(exec_report.filled_orders, filled_orders);
 }

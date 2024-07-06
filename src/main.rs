@@ -9,69 +9,70 @@ use snap::Snap;
 
 fn main() {
     dbgp!("Crafting Orderbook");
-    let trader_order_id = 777;
+    let trader_order_id = 333;
     let mut ob = OrderBook::new("MAIN".to_string());
     let snap = Snap {
         exch_epoch: 0,
         vec: vec![
             LimitOrder {
-                side: Side::Bid,
+                side: Side::Ask,
                 price: 99,
-                qty: 10,
+                qty: 100,
             },
             LimitOrder {
-                side: Side::Bid,
+                side: Side::Ask,
                 price: 100,
                 qty: 10,
             },
             LimitOrder {
-                side: Side::Bid,
+                side: Side::Ask,
                 price: 101,
                 qty: 10,
             },
         ],
     };
     // println!("{:?}", SystemTime::now());
-    ob.process(snap, (trader_order_id, 0));
+    ob = ob.process(snap, (909, trader_order_id));
     // if matches! {fr.status, OrderStatus::Filled} {
     //     dbgp!("{:#?}, avg_fill_price {}", fr, fr.avg_fill_price());
     // }
     // println!("{:?}", SystemTime::now());
     let _ = ob.add_limit_order(Order {
-        side: Side::Bid,
-        price: 101,
-        qty: 1,
+        side: Side::Ask,
+        price: 99,
+        qty: 10,
         id: trader_order_id,
     });
-    let _ = ob.add_limit_order(Order {
-        side: Side::Bid,
-        price: 101,
-        qty: 10,
-        id: 999,
-    });
 
-    let mut ob = OrderBook::new("MAIN".to_string());
     let snap = Snap {
         exch_epoch: 0,
         vec: vec![
             LimitOrder {
-                side: Side::Bid,
+                side: Side::Ask,
                 price: 99,
-                qty: 10,
+                qty: 150,
             },
             LimitOrder {
-                side: Side::Bid,
+                side: Side::Ask,
                 price: 100,
                 qty: 10,
             },
             LimitOrder {
-                side: Side::Bid,
+                side: Side::Ask,
                 price: 101,
                 qty: 5,
             },
         ],
     };
-    ob = ob.process(snap, (trader_order_id, 0));
+    ob = ob.process(snap, (909, trader_order_id));
+
+    let _exec_report = ob.add_limit_order(Order {
+        side: Side::Bid,
+        price: 99,
+        qty: 135,
+        id: 1010,
+    });
+    dbgp!("{:#?}", _exec_report);
 
     dbgp!("{:#?}", ob);
     let _ = ob.get_bbo();

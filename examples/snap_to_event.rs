@@ -1,5 +1,3 @@
-// Problem: midprice need to be reusable for buy/send
-// OverLimit
 use orderbook::account::TradingAccount;
 use orderbook::dbgp;
 use orderbook::indicators::Indicator;
@@ -7,8 +5,8 @@ use orderbook::management::OrderManagementSystem;
 use orderbook::orderbook::{Order, OrderBook};
 use orderbook::snap::Snap;
 use orderbook::strategy::{Strategy, StrategyName};
+use readable::num::*;
 
-// #[allow(unused_variables)]
 fn snap_to_event() {
     let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob.csv";
     let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders.csv";
@@ -23,14 +21,15 @@ fn snap_to_event() {
     let trader_buy_id = 333;
     let trader_sell_id = 777;
     let initial_balance = 0;
+    let mut trading_volume = 0;
 
     // Setup Strat
     let mut strat = Strategy::new(StrategyName::TestStrategy);
-    strat.buy_criterion = -0.0001;
-    strat.sell_criterion = 0.0001;
-    strat.buy_position_limit = 0;
-    strat.sell_position_limit = 0;
-    strat.qty = 10;
+    strat.buy_criterion = -0.0002;
+    strat.sell_criterion = 0.0002;
+    strat.buy_position_limit = 100;
+    strat.sell_position_limit = -100;
+    strat.qty = 100;
 
     // Setup account
     let money_account = TradingAccount::new(initial_balance);
@@ -62,9 +61,11 @@ fn snap_to_event() {
                 // Apply order
                 let exec_report = ob.add_limit_order(next_order);
                 dbgp!("{:#?}", exec_report);
+                let prev_account_balance = oms.account.balance;
                 oms.update(exec_report, (trader_buy_id, trader_sell_id));
                 dbgp!("POS {:#?}", oms.strategy.master_position);
                 dbgp!("ACC {:#?}", oms.account.balance);
+                trading_volume += (oms.account.balance - prev_account_balance).abs();
 
                 // Load next order
                 if let Some(Ok(order)) = trdr.next() {
@@ -89,13 +90,13 @@ fn snap_to_event() {
                         }
                         Some((_, _, price)) if *price == buy_order.price => {
                             dbgp!("[ STRAT] Order found, passing");
-                            dbgp!("[ STRAT] price = {}", *price);
+                            dbgp!("[ STRAT] price = {}", price);
                         }
-                        Some((_, _, price)) => {
+                        Some((_, _, _price)) => {
                             dbgp!("[ STRAT] Order found, need price update, place new order");
                             dbgp!(
                                 "[ STRAT] Old price {}, New Price {}",
-                                *price,
+                                _price,
                                 buy_order.price
                             );
                             dbgp!("[ STRAT] sent {:#?}", buy_order);
@@ -115,12 +116,13 @@ fn snap_to_event() {
                         }
                         Some((_, _, price)) if *price == sell_order.price => {
                             dbgp!("[ STRAT] Order found, passing");
+                            dbgp!("[ STRAT] price = {}", price);
                         }
-                        Some((_, _, price)) => {
+                        Some((_, _, _price)) => {
                             dbgp!("[ STRAT] Order found, need price update, place new order");
                             dbgp!(
                                 "[ STRAT] Old price {}, New Price {}",
-                                *price,
+                                _price,
                                 sell_order.price
                             );
                             dbgp!("[ STRAT] sent {:#?}", sell_order);
@@ -138,7 +140,9 @@ fn snap_to_event() {
     let _ = ob.get_bbo();
     let pnl = midprice.evaluate(&ob).unwrap() * oms.strategy.master_position as f32
         + oms.account.balance as f32;
-    dbgp!("{}", pnl);
+    println!("PnL abs = {}", Int::from(pnl as i32));
+    println!("PnL bps = {:.3}", pnl / trading_volume as f32 * 10000.0);
+    println!("Volume = {}", Int::from(trading_volume));
     dbgp!("Done!");
 }
 

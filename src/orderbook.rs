@@ -77,7 +77,7 @@ impl HalfBook {
             price_levels: Vec::with_capacity(50_000),
         }
     }
-
+    #[allow(unused)]
     pub fn get_total_qty(&self, price: u64) -> u64 {
         self.price_levels[self.price_map[&price]]
             .iter()
@@ -216,17 +216,21 @@ impl OrderBook {
         let mut front_dec = 0;
         for o in price_level.iter() {
             if *incoming_order_qty > 0 {
-                if o.qty <= *incoming_order_qty {
+                if o.qty < *incoming_order_qty {
                     dbgp!("[ FILL ]    Incomplete {}", o.price);
                     *incoming_order_qty -= o.qty;
                     done_qty.push(o.qty);
                     incomplete_fills += 1;
+                } else if o.qty == *incoming_order_qty {
+                    dbgp!("[ FILL ]    Complete {}", o.price);
+                    done_qty.push(o.qty);
+                    incomplete_fills += 1;
+                    *incoming_order_qty = 0;
                 } else {
                     dbgp!("[ FILL ]    Complete {}", o.price);
                     done_qty.push(*incoming_order_qty);
                     front_dec = *incoming_order_qty;
                     *incoming_order_qty = 0;
-                    ids.push(o.id)
                 }
             } else {
                 break;
@@ -240,7 +244,9 @@ impl OrderBook {
             ids.push(*id)
         }
         if front_dec > 0 {
+            let id = price_level.front().unwrap().id;
             price_level.front_mut().unwrap().qty -= front_dec;
+            ids.push(id)
         };
         (ids, done_qty)
     }
@@ -274,8 +280,9 @@ impl OrderBook {
                             &mut remaining_order_qty,
                             &mut self.order_loc,
                         );
+                        dbgp!("VEC {:?}", id_vec);
                         for i in 0..id_vec.len() {
-                            dbgp!("[ INFO ]    Matched {}@{}", qty_vec[i], x);
+                            dbgp!("[ INFO ]    Matched {} {}@{}", id_vec[i], qty_vec[i], x);
                             exec_report.filled_orders.push((id_vec[i], qty_vec[i], *x));
                         }
                         if let Some((a, _)) = price_map_iter.next() {
@@ -301,7 +308,7 @@ impl OrderBook {
                             &mut self.order_loc,
                         );
                         for i in 0..id_vec.len() {
-                            dbgp!("[ INFO ]    Matched {}@{}", qty_vec[i], x);
+                            dbgp!("[ INFO ]    Matched {} {}@{}", id_vec[i], qty_vec[i], x);
                             exec_report.filled_orders.push((id_vec[i], qty_vec[i], *x));
                         }
                         if let Some((a, _)) = price_map_iter.next_back() {
@@ -352,13 +359,11 @@ impl OrderBook {
             (Some(_bid), None) => Err("Offer HalfBook is empty"),
             (None, Some(_ask)) => Err("Bid HalfBook is empty"),
             (Some(bid_price), Some(ask_price)) => {
-                let total_bid_qty = self.bid_book.get_total_qty(bid_price);
-                let total_ask_qty = self.ask_book.get_total_qty(ask_price);
                 dbgp!(
                     "[ BBO  ] {:?}@{} x {:?}@{}",
-                    total_bid_qty,
+                    self.bid_book.get_total_qty(bid_price),
                     bid_price,
-                    total_ask_qty,
+                    self.ask_book.get_total_qty(ask_price),
                     ask_price,
                 );
                 let spread = ask_price - bid_price;
