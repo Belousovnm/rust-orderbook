@@ -8,8 +8,8 @@ use orderbook::strategy::{Strategy, StrategyName};
 use readable::num::*;
 
 fn snap_to_event() {
-    let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob.csv";
-    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders.csv";
+    let ob_path = "data/ob.csv";
+    let orders_path = "data/orders.csv";
     dbgp!("Crafting Orderbook");
     let mut ob = OrderBook::new("SecName".to_string());
     let mut snap_reader = csv::Reader::from_path(ob_path).unwrap();
@@ -26,8 +26,8 @@ fn snap_to_event() {
 
     // Setup Strat
     let mut strat = Strategy::new(StrategyName::TestStrategy);
-    strat.buy_criterion = -0.0002;
-    strat.sell_criterion = 0.0002;
+    strat.buy_criterion = -0.000002;
+    strat.sell_criterion = 0.000002;
     strat.buy_position_limit = 100;
     strat.sell_position_limit = -100;
     strat.qty = 100;
