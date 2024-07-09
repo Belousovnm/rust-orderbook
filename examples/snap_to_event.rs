@@ -22,13 +22,14 @@ fn snap_to_event() {
     let trader_sell_id = 777;
     let initial_balance = 0;
     let mut trading_volume = 0;
+    let mut trade_count = 0;
 
     // Setup Strat
     let mut strat = Strategy::new(StrategyName::TestStrategy);
-    strat.buy_criterion = 0.00001;
-    strat.sell_criterion = 0.00001;
-    strat.buy_position_limit = 10000;
-    strat.sell_position_limit = -10000;
+    strat.buy_criterion = -0.0002;
+    strat.sell_criterion = 0.0002;
+    strat.buy_position_limit = 100;
+    strat.sell_position_limit = -100;
     strat.qty = 100;
 
     // Setup account
@@ -65,8 +66,10 @@ fn snap_to_event() {
                 oms.update(exec_report, (trader_buy_id, trader_sell_id));
                 // dbgp!("POS {:#?}", oms.strategy.master_position);
                 // dbgp!("ACC {:#?}", oms.account.balance);
-                trading_volume += (oms.account.balance - prev_account_balance).abs();
-
+                if prev_account_balance != oms.account.balance {
+                    trading_volume += (oms.account.balance - prev_account_balance).abs();
+                    trade_count += 1;
+                }
                 // Load next order
                 if let Some(Ok(order)) = trdr.next() {
                     next_order = order;
@@ -142,6 +145,7 @@ fn snap_to_event() {
     println!("PnL abs = {}", Int::from(pnl as i32));
     println!("PnL bps = {:.3}", pnl / trading_volume as f32 * 10000.0);
     println!("Volume = {}", Int::from(trading_volume));
+    println!("Trade Count = {}", Int::from(trade_count));
     dbgp!("Done!");
 }
 

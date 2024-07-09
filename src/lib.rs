@@ -4,6 +4,7 @@
 // store total qty on level
 // Problem: VecDeque is not contigous?
 // Updates from deltas
+// Add Strategy builder
 
 pub mod account;
 pub mod event;
