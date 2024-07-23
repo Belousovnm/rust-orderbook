@@ -35,12 +35,12 @@ impl<'a, 'b> OrderManagementSystem {
             0
         };
         let qty = self.strategy.qty.min(free_qty);
-        dbgp!(
-            "free_qty = {}, strategy_qty = {}, qty = {}",
-            free_qty,
-            self.strategy.qty,
-            qty
-        );
+        // dbgp!(
+        //     "free_qty = {}, strategy_qty = {}, qty = {}",
+        //     free_qty,
+        //     self.strategy.qty,
+        //     qty
+        // );
         if qty > 0 {
             Ok(Order {
                 id,
@@ -66,12 +66,12 @@ impl<'a, 'b> OrderManagementSystem {
             0
         };
         let qty = self.strategy.qty.min(free_qty);
-        dbgp!(
-            "free_qty = {}, strategy_qty = {}, qty = {}",
-            free_qty,
-            self.strategy.qty,
-            qty
-        );
+        // dbgp!(
+        //     "free_qty = {}, strategy_qty = {}, qty = {}",
+        //     free_qty,
+        //     self.strategy.qty,
+        //     qty
+        // );
         if qty > 0 {
             Ok(Order {
                 id,
