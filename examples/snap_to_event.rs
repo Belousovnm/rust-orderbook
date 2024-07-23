@@ -23,6 +23,7 @@ fn snap_to_event() {
     let initial_balance = 0;
     let mut trading_volume = 0;
     let mut trade_count = 0;
+    let mut loop_counter = 0;
 
     // Setup Strat
     let mut strat = Strategy::new(StrategyName::TestStrategy);
@@ -44,6 +45,7 @@ fn snap_to_event() {
     // Load first snapshot
     if let Some(Ok(first_snap)) = srdr.next() {
         epoch = first_snap.exch_epoch;
+        dbgp!("[ EPCH ] snap {:?}", epoch);
         ob = ob.process(first_snap, (trader_buy_id, trader_sell_id));
     }
 
@@ -55,11 +57,17 @@ fn snap_to_event() {
     }
 
     'a: while let Some(Ok(snap)) = srdr.next() {
-        let epoch = snap.exch_epoch;
+        epoch = snap.exch_epoch;
         loop {
+            loop_counter += 1;
+            if loop_counter >= 1000 {
+                break 'a;
+            }
+            dbgp!("{:#?}", ob);
             // If order before next update
             if next_order.id <= epoch {
                 // Apply order
+                dbgp!("[ EPCH ] order {:?}", next_order.id);
                 let exec_report = ob.add_limit_order(next_order);
                 dbgp!("{:#?}", exec_report);
                 let prev_account_balance = oms.account.balance;
@@ -80,6 +88,7 @@ fn snap_to_event() {
             // If next snap before order
             } else if next_order.id > epoch {
                 // Load next snap
+                dbgp!("[ EPCH ] snap {:?}", epoch);
                 ob = ob.process(snap, (trader_buy_id, trader_sell_id));
                 // Trader's move
                 let m = midprice.evaluate(&ob);
