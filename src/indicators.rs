@@ -3,12 +3,15 @@ use crate::orderbook::OrderBook;
 pub enum Indicator {
     Midprice,
 }
-
+// Cloning is depressing
 impl Indicator {
     pub fn evaluate(&self, ob: &OrderBook) -> Option<f32> {
+        let mut raw_ob = ob.clone();
+        let _ = raw_ob.cancel_order(333);
+        let _ = raw_ob.cancel_order(777);
         match self {
             Indicator::Midprice => {
-                let (bid, ask, _spread) = ob.get_bbo().ok()?;
+                let (bid, ask, _spread) = raw_ob.get_bbo().ok()?;
                 Some(midprice(bid, ask))
             }
         }

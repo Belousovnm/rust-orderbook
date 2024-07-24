@@ -111,9 +111,9 @@ fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) 
             let mut new_qty_bid = 0;
             let mut new_qty_ask = 0;
             for level in snap.into_iter() {
-                if level.price == price_bid {
+                if level.price == price_bid && level.side == Side::Bid {
                     new_qty_bid = level.qty;
-                } else if level.price == price_ask {
+                } else if level.price == price_ask && level.side == Side::Ask {
                     new_qty_ask = level.qty;
                 } else {
                     filtered_snap.push(level);
