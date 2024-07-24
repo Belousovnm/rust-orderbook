@@ -87,12 +87,12 @@ impl HalfBook {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct OrderBook {
     symbol: String,
-    best_bid_price: Option<u64>,
-    best_offer_price: Option<u64>,
+    pub best_bid_price: Option<u64>,
+    pub best_offer_price: Option<u64>,
     bid_book: HalfBook,
     ask_book: HalfBook,
     // id, (side, price_level, price)
@@ -264,10 +264,11 @@ impl OrderBook {
         let price = order.price;
         let mut remaining_order_qty = order_qty;
         dbgp!(
-            "[ INFO ] Booked {:?} {}@{}",
+            "[ INFO ] Booked {:?} {}@{} id={}",
             side,
             remaining_order_qty,
-            price
+            price,
+            order_id,
         );
         let mut exec_report = ExecutionReport::new();
         match side {
@@ -286,7 +287,7 @@ impl OrderBook {
                             &mut self.order_loc,
                         );
                         for i in 0..id_vec.len() {
-                            dbgp!("[ INFO ]    Matched {} {}@{}", id_vec[i], qty_vec[i], x);
+                            dbgp!("[ INFO ]    Matched {}@{} id={}", qty_vec[i], x, id_vec[i]);
                             exec_report.filled_orders.push((id_vec[i], qty_vec[i], *x));
                         }
                         if let Some((a, _)) = price_map_iter.next() {
@@ -312,7 +313,7 @@ impl OrderBook {
                             &mut self.order_loc,
                         );
                         for i in 0..id_vec.len() {
-                            dbgp!("[ INFO ]    Matched {} {}@{}", id_vec[i], qty_vec[i], x);
+                            dbgp!("[ INFO ]    Matched {}@{} {}", qty_vec[i], x, id_vec[i]);
                             exec_report.filled_orders.push((id_vec[i], qty_vec[i], *x));
                         }
                         if let Some((a, _)) = price_map_iter.next_back() {

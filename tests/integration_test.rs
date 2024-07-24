@@ -15,10 +15,12 @@ fn deser() -> Snap {
 #[rstest]
 fn deser_level(deser: Snap) {
     let mut snap_iter = deser.into_iter();
-    assert_eq!(snap_iter.next().unwrap().price, 1);
-    assert_eq!(snap_iter.next().unwrap().qty, 52);
-    assert_eq!(snap_iter.next().unwrap().price, 3);
-    assert_eq!(snap_iter.next().unwrap().qty, 54);
+    let mut snap = snap_iter.next().unwrap();
+    assert_eq!(snap.price, 1);
+    assert_eq!(snap.qty, 51);
+    snap = snap_iter.next().unwrap();
+    assert_eq!(snap.price, 2);
+    assert_eq!(snap.qty, 52);
 }
 
 #[rstest]
