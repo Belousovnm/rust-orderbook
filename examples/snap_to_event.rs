@@ -90,7 +90,7 @@ fn snap_to_event() {
                     match ob.order_loc.get(&trader_buy_id) {
                         None => {
                             dbgp!("[ STRAT] Order not found, place new order");
-                            dbgp!("[ STRAT] sent {:#?}", buy_order);
+                            dbgp!("[ STRAT] send {:#?}", buy_order);
                             ob.add_limit_order(buy_order);
                         }
                         Some((_, _, price)) if *price == buy_order.price => {
@@ -104,7 +104,8 @@ fn snap_to_event() {
                                 _price,
                                 buy_order.price
                             );
-                            dbgp!("[ STRAT] sent {:#?}", buy_order);
+                            dbgp!("[ STRAT] send {:#?}", buy_order);
+                            let _ = ob.cancel_order(333);
                             ob.add_limit_order(buy_order);
                         }
                     }
@@ -115,7 +116,7 @@ fn snap_to_event() {
                     match ob.order_loc.get(&trader_sell_id) {
                         None => {
                             dbgp!("[ STRAT] Order not found, place new order");
-                            dbgp!("[ STRAT] sent {:#?}", sell_order);
+                            dbgp!("[ STRAT] send {:#?}", sell_order);
                             ob.add_limit_order(sell_order);
                         }
                         Some((_, _, price)) if *price == sell_order.price => {
@@ -129,7 +130,8 @@ fn snap_to_event() {
                                 _price,
                                 sell_order.price
                             );
-                            dbgp!("[ STRAT] sent {:#?}", sell_order);
+                            dbgp!("[ STRAT] send {:#?}", sell_order);
+                            let _ = ob.cancel_order(777);
                             ob.add_limit_order(sell_order);
                         }
                     }
