@@ -26,8 +26,8 @@ fn snap_to_event() {
 
     // Setup Strat
     let mut strat = Strategy::new(StrategyName::TestStrategy);
-    strat.buy_criterion = -0.000002;
-    strat.sell_criterion = 0.000002;
+    strat.buy_criterion = -0.0002;
+    strat.sell_criterion = 0.0002;
     strat.buy_position_limit = 100;
     strat.sell_position_limit = -100;
     strat.qty = 100;
