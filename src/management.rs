@@ -103,7 +103,7 @@ impl<'a, 'b> OrderManagementSystem {
             let trader_filled_qty = exec_report.filled_orders[key].1;
             let trader_filled_price = exec_report.filled_orders[key].2;
             dbgp!(
-                "[ KEY ] qty = {:?}, price = {:?}",
+                "[TRADE ] qty = {:?}, price = {:?}",
                 trader_filled_qty,
                 trader_filled_price,
             );

@@ -373,7 +373,7 @@ impl OrderBook {
                     ask_price,
                 );
                 let spread = ask_price - bid_price;
-                dbgp!("[ BBO  ] Spread is {:.6},", spread);
+                dbgp!("[ BBO  ] Spread is {:.6}", spread);
                 Ok((bid_price, ask_price, spread))
             }
         }
