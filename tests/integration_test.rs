@@ -56,7 +56,6 @@ fn exec_report_test() {
             },
         ],
     };
-    // println!("{:?}", SystemTime::now());
     ob = ob.process(snap, (909, trader_order_id));
     // if matches! {fr.status, OrderStatus::Filled} {
     //     dbgp!("{:#?}, avg_fill_price {}", fr, fr.avg_fill_price());
