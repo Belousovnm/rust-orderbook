@@ -76,7 +76,7 @@ impl HalfBook {
         HalfBook {
             side,
             price_map: BTreeMap::new(),
-            price_levels: Vec::with_capacity(50_000),
+            price_levels: Vec::with_capacity(16),
         }
     }
     #[allow(unused)]
@@ -109,7 +109,7 @@ impl OrderBook {
             best_offer_price: None,
             bid_book: HalfBook::new(Side::Bid),
             ask_book: HalfBook::new(Side::Ask),
-            order_loc: HashMap::with_capacity(50_000),
+            order_loc: HashMap::with_capacity(32),
         }
     }
 
@@ -136,7 +136,6 @@ impl OrderBook {
         }
     }
 
-    #[inline]
     fn create_new_limit_order(
         &mut self,
         side: Side,
@@ -173,7 +172,6 @@ impl OrderBook {
         order_id
     }
 
-    #[inline]
     fn update_bbo(&mut self) {
         let mut best_bid_price = None;
         for (p, u) in &self.bid_book.price_map {
@@ -206,7 +204,6 @@ impl OrderBook {
         );
     }
 
-    #[inline]
     fn match_at_price_level(
         price_level: &mut VecDeque<Order>,
         incoming_order_qty: &mut u64,
@@ -257,7 +254,6 @@ impl OrderBook {
         (ids, done_qty)
     }
 
-    #[inline]
     pub fn add_limit_order(&mut self, order: Order) -> ExecutionReport {
         let order_qty = order.qty;
         let order_id = order.id;
@@ -358,7 +354,6 @@ impl OrderBook {
         exec_report
     }
 
-    #[inline]
     pub fn get_bbo(&self) -> Result<(u64, u64, u64), &str> {
         match (self.best_bid_price, self.best_offer_price) {
             (None, None) => Err("Both bid and offer HalfBooks are empty"),

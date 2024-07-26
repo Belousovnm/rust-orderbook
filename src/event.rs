@@ -329,7 +329,7 @@ impl<'de> Deserialize<'de> for Snap {
                         }
                     }
                 }
-                let mut vec: Vec<LimitOrder> = Vec::with_capacity(21);
+                let mut vec: Vec<LimitOrder> = Vec::with_capacity(32);
                 let side = Side::Bid;
                 let price = bid_1_price.ok_or_else(|| Error::missing_field("bid_1_price"))?;
                 let qty = bid_1_qty.ok_or_else(|| Error::missing_field("bid_1_qty"))?;

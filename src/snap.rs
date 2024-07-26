@@ -12,7 +12,7 @@ impl Snap {
     fn new() -> Self {
         Snap {
             exch_epoch: 0,
-            vec: Vec::with_capacity(11),
+            vec: Vec::with_capacity(16),
         }
     }
 
@@ -73,10 +73,33 @@ fn place_head_tail(
             qty: qty_head,
         });
     }
-    // Dirty unwrap
-    if (side == Side::Bid && price < ob.best_offer_price.unwrap())
-        || (side == Side::Ask && price > ob.best_bid_price.unwrap())
-    {
+    if let Some(best_offer_price) = ob.best_offer_price {
+        if side == Side::Bid && price < best_offer_price {
+            let _ = ob.add_limit_order(Order {
+                id,
+                side,
+                price,
+                qty,
+            });
+        }
+    } else if side == Side::Bid {
+        let _ = ob.add_limit_order(Order {
+            id,
+            side,
+            price,
+            qty,
+        });
+    }
+    if let Some(best_bid_price) = ob.best_bid_price {
+        if side == Side::Ask && price > best_bid_price {
+            let _ = ob.add_limit_order(Order {
+                id,
+                side,
+                price,
+                qty,
+            });
+        }
+    } else if side == Side::Ask {
         let _ = ob.add_limit_order(Order {
             id,
             side,
