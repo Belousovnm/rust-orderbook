@@ -32,17 +32,6 @@ impl IntoIterator for Snap {
 
 type Offset = (Side, u64, u64, u64, u64, u64);
 
-// impl From<Snap> for Order {
-//     fn from(id: u64, value: Snap) -> Self {
-//         Self {
-//             id,
-//             side: value.0,
-//             price: value.1,
-//             qty: value.2,
-//         }
-//     }
-// }
-
 fn place_order_from_snap(snap: Snap, ob: &mut OrderBook) {
     for (id, level) in snap.into_iter().enumerate() {
         let _ = ob.add_limit_order(Order {
@@ -84,12 +73,17 @@ fn place_head_tail(
             qty: qty_head,
         });
     }
-    let _ = ob.add_limit_order(Order {
-        id,
-        side,
-        price,
-        qty,
-    });
+    // Dirty unwrap
+    if (side == Side::Bid && price < ob.best_offer_price.unwrap())
+        || (side == Side::Ask && price > ob.best_bid_price.unwrap())
+    {
+        let _ = ob.add_limit_order(Order {
+            id,
+            side,
+            price,
+            qty,
+        });
+    }
     if qty_tail > 0 {
         let _ = ob.add_limit_order(Order {
             id: id + 111,
