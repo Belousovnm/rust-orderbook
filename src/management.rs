@@ -1,7 +1,7 @@
 use crate::account::TradingAccount;
 use crate::dbgp;
 use crate::{
-    orderbook::{ExecutionReport, Order, Side},
+    orderbook::{ExecutionReport, Order, OrderBook, Side},
     strategy::Strategy,
 };
 
@@ -9,7 +9,8 @@ pub struct OrderManagementSystem {
     pub strategy: Strategy,
     pub account: TradingAccount,
     pub active_orders: Vec<Order>,
-    pub strategy_signals: Vec<Order>,
+    pub strategy_buy_signal: Option<Order>,
+    pub strategy_sell_signal: Option<Order>,
 }
 
 impl<'a, 'b> OrderManagementSystem {
@@ -18,7 +19,8 @@ impl<'a, 'b> OrderManagementSystem {
             strategy,
             account,
             active_orders: Vec::with_capacity(2),
-            strategy_signals: Vec::with_capacity(2),
+            strategy_buy_signal: None,
+            strategy_sell_signal: None,
         }
     }
 
@@ -27,6 +29,7 @@ impl<'a, 'b> OrderManagementSystem {
         ref_price: Option<f32>,
         id: u64,
     ) -> Result<Order, &'b str> {
+        let side = Side::Bid;
         let price = (ref_price.ok_or("Missing Ref Price")? * (1.0 + self.strategy.buy_criterion))
             .floor() as u64;
         let free_qty = if self.strategy.buy_position_limit - self.strategy.master_position > 0 {
@@ -42,12 +45,13 @@ impl<'a, 'b> OrderManagementSystem {
         //     qty
         // );
         if qty > 0 {
-            Ok(Order {
+            let order = Order {
                 id,
-                side: Side::Bid,
+                side,
                 price,
                 qty,
-            })
+            };
+            Ok(order)
         } else {
             Err("No Limit left")
         }
@@ -58,6 +62,7 @@ impl<'a, 'b> OrderManagementSystem {
         ref_price: Option<f32>,
         id: u64,
     ) -> Result<Order, &'b str> {
+        let side = Side::Ask;
         let price = (ref_price.ok_or("Missing Ref Price")? * (1.0 + self.strategy.sell_criterion))
             .ceil() as u64;
         let free_qty = if -self.strategy.sell_position_limit + self.strategy.master_position > 0 {
@@ -73,12 +78,13 @@ impl<'a, 'b> OrderManagementSystem {
         //     qty
         // );
         if qty > 0 {
-            Ok(Order {
+            let order = Order {
                 id,
-                side: Side::Ask,
+                side,
                 price,
                 qty,
-            })
+            };
+            Ok(order)
         } else {
             Err("No Limit left")
         }
@@ -111,6 +117,15 @@ impl<'a, 'b> OrderManagementSystem {
             self.account.balance -= sign * (trader_filled_qty * trader_filled_price) as i32;
             dbgp!("TRADER FILLED: {}", trader_filled_qty);
             // std::mem::swap(&mut self.strategy.master_position, &mut new_position);
+        }
+    }
+
+    pub fn send_orders(&self, ob: &mut OrderBook) {
+        if let Some(order) = self.strategy_buy_signal {
+            let _ = ob.add_limit_order(order);
+        }
+        if let Some(order) = self.strategy_sell_signal {
+            let _ = ob.add_limit_order(order);
         }
     }
 }
