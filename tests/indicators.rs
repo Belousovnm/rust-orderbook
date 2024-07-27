@@ -1,5 +1,5 @@
-use orderbook::indicators::Indicator;
-use orderbook::orderbook::{Order, OrderBook, Side};
+use orderbook::Indicator;
+use orderbook::{Order, OrderBook, Side};
 use pretty_assertions::assert_eq;
 use rstest::rstest;
 

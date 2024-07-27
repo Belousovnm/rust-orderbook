@@ -1,7 +1,5 @@
 mod common;
-use orderbook::event::LimitOrder;
-use orderbook::orderbook::{Order, OrderBook, Side};
-use orderbook::snap::Snap;
+use orderbook::{LimitOrder, Order, OrderBook, Side, Snap};
 use pretty_assertions::assert_eq;
 use rstest::{fixture, rstest};
 
