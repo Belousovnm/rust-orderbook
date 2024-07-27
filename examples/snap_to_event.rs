@@ -90,7 +90,7 @@ fn snap_to_event() {
                         None => {
                             dbgp!("[ STRAT] Order not found, place new order");
                             dbgp!("[ STRAT] send {:#?}", buy_order);
-                            ob.add_limit_order(buy_order);
+                            oms.strategy_buy_signal = Some(buy_order);
                         }
                         Some((_, _, price)) if *price == buy_order.price => {
                             dbgp!("[ STRAT] Order found, passing");
@@ -105,9 +105,11 @@ fn snap_to_event() {
                             );
                             dbgp!("[ STRAT] send {:#?}", buy_order);
                             let _ = ob.cancel_order(333);
-                            ob.add_limit_order(buy_order);
+                            oms.strategy_buy_signal = Some(buy_order);
                         }
                     }
+                } else {
+                    oms.strategy_buy_signal = None;
                 }
 
                 // dbgp!("POS {:#?}", oms.strategy.master_position);
@@ -116,7 +118,7 @@ fn snap_to_event() {
                         None => {
                             dbgp!("[ STRAT] Order not found, place new order");
                             dbgp!("[ STRAT] send {:#?}", sell_order);
-                            ob.add_limit_order(sell_order);
+                            oms.strategy_sell_signal = Some(sell_order);
                         }
                         Some((_, _, price)) if *price == sell_order.price => {
                             dbgp!("[ STRAT] Order found, passing");
@@ -131,10 +133,13 @@ fn snap_to_event() {
                             );
                             dbgp!("[ STRAT] send {:#?}", sell_order);
                             let _ = ob.cancel_order(777);
-                            ob.add_limit_order(sell_order);
+                            oms.strategy_sell_signal = Some(sell_order);
                         }
                     }
+                } else {
+                    oms.strategy_sell_signal = None;
                 }
+                oms.send_orders(&mut ob);
                 dbgp!("{:?}", ob.get_order(trader_buy_id));
                 dbgp!("{:?}", ob.get_order(trader_sell_id));
                 break;

@@ -5,6 +5,7 @@
 // Problem: VecDeque is not contigous?
 // Updates from deltas
 // Add Strategy builder
+// Add typestate
 
 pub mod account;
 pub mod management;
