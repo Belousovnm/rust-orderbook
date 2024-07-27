@@ -158,19 +158,35 @@ fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) 
                 price_ask,
             )
         }
-        (Some((side, price, qty_head, qty, qty_tail, id)), None)
-        | (None, Some((side, price, qty_head, qty, qty_tail, id))) => {
+        (Some((side, bid_price, qty_head, qty, qty_tail, id)), None) => {
             let mut filtered_snap = Snap::new();
             let mut new_qty = 0;
             for level in snap.into_iter() {
-                if level.price == price {
+                if level.price == bid_price && level.side == Side::Bid {
                     new_qty = level.qty;
                 } else {
                     filtered_snap.push(level);
                 }
             }
             place_order_from_snap(filtered_snap, &mut ob);
-            place_head_tail(&mut ob, qty_head, qty_tail, qty, new_qty, id, side, price);
+            place_head_tail(
+                &mut ob, qty_head, qty_tail, qty, new_qty, id, side, bid_price,
+            );
+        }
+        (None, Some((side, ask_price, qty_head, qty, qty_tail, id))) => {
+            let mut filtered_snap = Snap::new();
+            let mut new_qty = 0;
+            for level in snap.into_iter() {
+                if level.price == ask_price && level.side == Side::Ask {
+                    new_qty = level.qty;
+                } else {
+                    filtered_snap.push(level);
+                }
+            }
+            place_order_from_snap(filtered_snap, &mut ob);
+            place_head_tail(
+                &mut ob, qty_head, qty_tail, qty, new_qty, id, side, ask_price,
+            );
         }
         (None, None) => {
             place_order_from_snap(snap, &mut ob);
