@@ -1,10 +1,9 @@
 use orderbook::account::TradingAccount;
 use orderbook::dbgp;
-use orderbook::indicators::Indicator;
 use orderbook::management::OrderManagementSystem;
-use orderbook::orderbook::{Order, OrderBook};
-use orderbook::snap::Snap;
 use orderbook::strategy::{Strategy, StrategyName};
+use orderbook::Indicator;
+use orderbook::{Order, OrderBook, Snap};
 use readable::num::*;
 
 fn snap_to_event() {
