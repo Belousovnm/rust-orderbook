@@ -121,6 +121,16 @@ impl<'a, 'b> OrderManagementSystem {
             // std::mem::swap(&mut self.strategy.master_position, &mut new_position);
         }
     }
+    fn send_buy_order(&mut self, ob: &mut OrderBook) {
+        let _ = ob.cancel_order(333);
+        let _ = ob.add_limit_order(self.strategy_buy_signal.unwrap());
+        self.active_buy_order = self.strategy_buy_signal;
+    }
+    fn send_sell_order(&mut self, ob: &mut OrderBook) {
+        let _ = ob.cancel_order(777);
+        let _ = ob.add_limit_order(self.strategy_sell_signal.unwrap());
+        self.active_sell_order = self.strategy_sell_signal;
+    }
 
     pub fn send_orders(&mut self, ob: &mut OrderBook, m: Option<f32>) {
         let trader_buy_id = 333;
@@ -186,7 +196,8 @@ impl<'a, 'b> OrderManagementSystem {
                     side: Side::Ask,
                     price,
                     qty,
-                }) if price == sell_order.price && qty == sell_order.qty => {
+                    // }) if price == sell_order.price && qty == sell_order.qty => {
+                }) if price == sell_order.price => {
                     dbgp!("[ STRAT] Order found, passing");
                     dbgp!("[ STRAT] price = {}", price);
                 }
@@ -218,19 +229,28 @@ impl<'a, 'b> OrderManagementSystem {
             let _ = ob.cancel_order(777);
             self.strategy_sell_signal = None;
         }
+        if send_buy_order && send_sell_order {
+            match self.active_sell_order {
+                Some(active_sell) => {
+                    if self.strategy_buy_signal.unwrap().price < active_sell.price {
+                        self.send_buy_order(ob);
+                        self.send_sell_order(ob);
+                    } else {
+                        self.send_sell_order(ob);
+                        self.send_buy_order(ob);
+                    }
+                }
+                None => {
+                    self.send_buy_order(ob);
+                    self.send_sell_order(ob);
+                }
+            }
+        }
         if send_buy_order {
-            let order = self.strategy_buy_signal.expect("Sending invalid buy order");
-            let _ = ob.cancel_order(333);
-            let _ = ob.add_limit_order(order);
-            self.active_buy_order = Some(order);
+            self.send_buy_order(ob);
         }
         if send_sell_order {
-            let order = self
-                .strategy_sell_signal
-                .expect("Sending invalid sell order");
-            let _ = ob.cancel_order(777);
-            let _ = ob.add_limit_order(order);
-            self.active_sell_order = Some(order);
+            self.send_sell_order(ob);
         }
     }
 }
