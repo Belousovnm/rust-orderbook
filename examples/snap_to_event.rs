@@ -84,62 +84,7 @@ fn snap_to_event() {
                 ob = ob.process(snap, (trader_buy_id, trader_sell_id));
                 // Trader's move
                 let m = midprice.evaluate(&ob);
-                // dbgp!("POS {:#?}", oms.strategy.master_position);
-                if let Ok(buy_order) = oms.calculate_buy_order(m, trader_buy_id) {
-                    match ob.order_loc.get(&trader_buy_id) {
-                        None => {
-                            dbgp!("[ STRAT] Order not found, place new order");
-                            dbgp!("[ STRAT] send {:#?}", buy_order);
-                            oms.strategy_buy_signal = Some(buy_order);
-                        }
-                        Some((_, _, price)) if *price == buy_order.price => {
-                            dbgp!("[ STRAT] Order found, passing");
-                            dbgp!("[ STRAT] price = {}", price);
-                        }
-                        Some((_, _, _price)) => {
-                            dbgp!("[ STRAT] Order found, need replace");
-                            dbgp!(
-                                "[ STRAT] Old price {}, New Price {}",
-                                _price,
-                                buy_order.price
-                            );
-                            dbgp!("[ STRAT] send {:#?}", buy_order);
-                            let _ = ob.cancel_order(333);
-                            oms.strategy_buy_signal = Some(buy_order);
-                        }
-                    }
-                } else {
-                    oms.strategy_buy_signal = None;
-                }
-
-                // dbgp!("POS {:#?}", oms.strategy.master_position);
-                if let Ok(sell_order) = oms.calculate_sell_order(m, trader_sell_id) {
-                    match ob.order_loc.get(&trader_sell_id) {
-                        None => {
-                            dbgp!("[ STRAT] Order not found, place new order");
-                            dbgp!("[ STRAT] send {:#?}", sell_order);
-                            oms.strategy_sell_signal = Some(sell_order);
-                        }
-                        Some((_, _, price)) if *price == sell_order.price => {
-                            dbgp!("[ STRAT] Order found, passing");
-                            dbgp!("[ STRAT] price = {}", price);
-                        }
-                        Some((_, _, _price)) => {
-                            dbgp!("[ STRAT] Order found, need replace");
-                            dbgp!(
-                                "[ STRAT] Old price {}, New Price {}",
-                                _price,
-                                sell_order.price
-                            );
-                            dbgp!("[ STRAT] send {:#?}", sell_order);
-                            let _ = ob.cancel_order(777);
-                            oms.strategy_sell_signal = Some(sell_order);
-                        }
-                    }
-                } else {
-                    oms.strategy_sell_signal = None;
-                }
-                oms.send_orders(&mut ob);
+                oms.send_orders(&mut ob, m);
                 dbgp!("{:?}", ob.get_order(trader_buy_id));
                 dbgp!("{:?}", ob.get_order(trader_sell_id));
                 break;
