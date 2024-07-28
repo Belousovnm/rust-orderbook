@@ -8,7 +8,8 @@ use crate::{
 pub struct OrderManagementSystem {
     pub strategy: Strategy,
     pub account: TradingAccount,
-    pub active_orders: Vec<Order>,
+    pub active_buy_order: Option<Order>,
+    pub active_sell_order: Option<Order>,
     pub strategy_buy_signal: Option<Order>,
     pub strategy_sell_signal: Option<Order>,
 }
@@ -18,7 +19,8 @@ impl<'a, 'b> OrderManagementSystem {
         Self {
             strategy,
             account,
-            active_orders: Vec::with_capacity(2),
+            active_buy_order: None,
+            active_sell_order: None,
             strategy_buy_signal: None,
             strategy_sell_signal: None,
         }
@@ -38,12 +40,12 @@ impl<'a, 'b> OrderManagementSystem {
             0
         };
         let qty = self.strategy.qty.min(free_qty);
-        // dbgp!(
-        //     "free_qty = {}, strategy_qty = {}, qty = {}",
-        //     free_qty,
-        //     self.strategy.qty,
-        //     qty
-        // );
+        dbgp!(
+            "free_qty = {}, strategy_qty = {}, qty = {}",
+            free_qty,
+            self.strategy.qty,
+            qty
+        );
         if qty > 0 {
             let order = Order {
                 id,
@@ -71,12 +73,12 @@ impl<'a, 'b> OrderManagementSystem {
             0
         };
         let qty = self.strategy.qty.min(free_qty);
-        // dbgp!(
-        //     "free_qty = {}, strategy_qty = {}, qty = {}",
-        //     free_qty,
-        //     self.strategy.qty,
-        //     qty
-        // );
+        dbgp!(
+            "free_qty = {}, strategy_qty = {}, qty = {}",
+            free_qty,
+            self.strategy.qty,
+            qty
+        );
         if qty > 0 {
             let order = Order {
                 id,
@@ -120,12 +122,115 @@ impl<'a, 'b> OrderManagementSystem {
         }
     }
 
-    pub fn send_orders(&self, ob: &mut OrderBook) {
-        if let Some(order) = self.strategy_buy_signal {
-            let _ = ob.add_limit_order(order);
+    pub fn send_orders(&mut self, ob: &mut OrderBook, m: Option<f32>) {
+        let trader_buy_id = 333;
+        let trader_sell_id = 777;
+        let mut send_buy_order = false;
+        let mut send_sell_order = false;
+        if let Ok(buy_order) = self.calculate_buy_order(m, trader_buy_id) {
+            match self.active_buy_order {
+                None => {
+                    dbgp!("[ STRAT] Order not found, place new order");
+                    dbgp!("[ STRAT] send {:#?}", buy_order);
+                    self.strategy_buy_signal = Some(buy_order);
+                    send_buy_order = true;
+                }
+                Some(Order {
+                    id: _id,
+                    side: Side::Bid,
+                    price,
+                    qty,
+                }) if price == buy_order.price && qty == buy_order.qty => {
+                    dbgp!("[ STRAT] Order found, passing");
+                    dbgp!("[ STRAT] price = {}", price);
+                }
+                Some(Order {
+                    id: _id,
+                    side: Side::Bid,
+                    price,
+                    qty,
+                }) => {
+                    dbgp!("[ STRAT] Order found, need replace");
+                    dbgp!(
+                        "[ STRAT] Old price {}, New Price {}",
+                        price,
+                        buy_order.price
+                    );
+                    dbgp!("[ STRAT] Old qty {}, New qty {}", qty, buy_order.qty);
+                    dbgp!("[ STRAT] send {:#?}", buy_order);
+                    self.strategy_buy_signal = Some(buy_order);
+                    send_buy_order = true;
+                }
+                Some(Order {
+                    id: _id,
+                    side: Side::Ask,
+                    price: _price,
+                    qty: _qty,
+                }) => unreachable!(),
+            }
+        } else {
+            let _ = ob.cancel_order(333);
+            self.strategy_sell_signal = None;
         }
-        if let Some(order) = self.strategy_sell_signal {
+
+        if let Ok(sell_order) = self.calculate_sell_order(m, trader_sell_id) {
+            match self.active_sell_order {
+                None => {
+                    dbgp!("[ STRAT] Order not found, place new order");
+                    dbgp!("[ STRAT] send {:#?}", sell_order);
+                    self.strategy_sell_signal = Some(sell_order);
+                    send_sell_order = true;
+                }
+                Some(Order {
+                    id: _id,
+                    side: Side::Ask,
+                    price,
+                    qty,
+                }) if price == sell_order.price && qty == sell_order.qty => {
+                    dbgp!("[ STRAT] Order found, passing");
+                    dbgp!("[ STRAT] price = {}", price);
+                }
+                Some(Order {
+                    id: _id,
+                    side: Side::Ask,
+                    price,
+                    qty,
+                }) => {
+                    dbgp!("[ STRAT] Order found, need replace");
+                    dbgp!(
+                        "[ STRAT] Old price {}, New Price {}",
+                        price,
+                        sell_order.price
+                    );
+                    dbgp!("[ STRAT] Old qty {}, New qty {}", qty, sell_order.qty);
+                    dbgp!("[ STRAT] send {:#?}", sell_order);
+                    self.strategy_sell_signal = Some(sell_order);
+                    send_sell_order = true;
+                }
+                Some(Order {
+                    id: _id,
+                    side: Side::Bid,
+                    price: _price,
+                    qty: _qty,
+                }) => unreachable!(),
+            }
+        } else {
+            let _ = ob.cancel_order(777);
+            self.strategy_sell_signal = None;
+        }
+        if send_buy_order {
+            let order = self.strategy_buy_signal.expect("Sending invalid buy order");
+            let _ = ob.cancel_order(333);
             let _ = ob.add_limit_order(order);
+            self.active_buy_order = Some(order);
+        }
+        if send_sell_order {
+            let order = self
+                .strategy_sell_signal
+                .expect("Sending invalid sell order");
+            let _ = ob.cancel_order(777);
+            let _ = ob.add_limit_order(order);
+            self.active_sell_order = Some(order);
         }
     }
 }
