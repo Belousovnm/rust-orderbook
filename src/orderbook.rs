@@ -13,7 +13,7 @@ pub enum Side {
     Ask,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum OrderStatus {
     Uninitialized,
     Created,
