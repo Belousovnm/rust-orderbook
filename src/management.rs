@@ -1,7 +1,7 @@
 use crate::account::TradingAccount;
 use crate::dbgp;
 use crate::{
-    orderbook::{ExecutionReport, Order, OrderBook, OrderStatus, Side},
+    orderbook::{ExecutionReport, Order, OrderBook, Side},
     strategy::Strategy,
 };
 
@@ -93,48 +93,59 @@ impl<'a, 'b> OrderManagementSystem {
     }
 
     pub fn update(&mut self, exec_report: ExecutionReport, ids: (u64, u64)) {
-        let sign;
-        let trader_id;
         if exec_report.taker_side == Side::Ask {
-            sign = 1;
-            trader_id = ids.0;
+            if let Some(key) = exec_report.filled_orders.iter().position(|&o| o.0 == ids.0) {
+                let trader_filled_qty = exec_report.filled_orders[key].1;
+                let trader_filled_price = exec_report.filled_orders[key].2;
+                dbgp!(
+                    "[TRADE ] qty = {:?}, price = {:?}",
+                    trader_filled_qty,
+                    trader_filled_price,
+                );
+                self.strategy.master_position += trader_filled_qty as i32;
+                self.account.balance -= (trader_filled_qty * trader_filled_price) as i32;
+                dbgp!("TRADER FILLED: {}", trader_filled_qty);
+                if trader_filled_qty == self.active_buy_order.unwrap().qty {
+                    self.active_buy_order = None;
+                } else {
+                    self.active_buy_order.unwrap().qty -= trader_filled_qty;
+                }
+            }
         } else {
-            sign = -1;
-            trader_id = ids.1;
+            if let Some(key) = exec_report.filled_orders.iter().position(|&o| o.0 == ids.1) {
+                let trader_filled_qty = exec_report.filled_orders[key].1;
+                let trader_filled_price = exec_report.filled_orders[key].2;
+                dbgp!(
+                    "[TRADE ] qty = {:?}, price = {:?}",
+                    trader_filled_qty,
+                    trader_filled_price,
+                );
+                self.strategy.master_position -= trader_filled_qty as i32;
+                self.account.balance += (trader_filled_qty * trader_filled_price) as i32;
+                dbgp!("TRADER FILLED: {}", trader_filled_qty);
+                if trader_filled_qty == self.active_sell_order.unwrap().qty {
+                    self.active_sell_order = None;
+                } else {
+                    self.active_sell_order.unwrap().qty -= trader_filled_qty;
+                }
+            }
         };
-        // if trader was filled
-        if let Some(key) = exec_report
-            .filled_orders
-            .iter()
-            .position(|&o| o.0 == trader_id)
-        {
-            let trader_filled_qty = exec_report.filled_orders[key].1;
-            let trader_filled_price = exec_report.filled_orders[key].2;
-            dbgp!(
-                "[TRADE ] qty = {:?}, price = {:?}",
-                trader_filled_qty,
-                trader_filled_price,
-            );
-            self.strategy.master_position += sign * trader_filled_qty as i32;
-            self.account.balance -= sign * (trader_filled_qty * trader_filled_price) as i32;
-            dbgp!("TRADER FILLED: {}", trader_filled_qty);
-            // std::mem::swap(&mut self.strategy.master_position, &mut new_position);
-        }
+        // std::mem::swap(&mut self.strategy.master_position, &mut new_position);
     }
     fn send_buy_order(&mut self, ob: &mut OrderBook) {
         let _ = ob.cancel_order(333);
-        let exec_report = ob.add_limit_order(self.strategy_buy_signal.unwrap());
-        if exec_report.status != OrderStatus::Created {
-            unreachable!();
-        }
+        let _exec_report = ob.add_limit_order(self.strategy_buy_signal.unwrap());
+        // if _exec_report.status != OrderStatus::Created {
+        //     unreachable!();
+        // }
         self.active_buy_order = self.strategy_buy_signal;
     }
     fn send_sell_order(&mut self, ob: &mut OrderBook) {
         let _ = ob.cancel_order(777);
-        let exec_report = ob.add_limit_order(self.strategy_sell_signal.unwrap());
-        if exec_report.status != OrderStatus::Created {
-            unreachable!();
-        }
+        let _exec_report = ob.add_limit_order(self.strategy_sell_signal.unwrap());
+        // if _exec_report.status != OrderStatus::Created {
+        //     unreachable!();
+        // }
         self.active_sell_order = self.strategy_sell_signal;
     }
 
@@ -159,6 +170,7 @@ impl<'a, 'b> OrderManagementSystem {
                 }) if price == buy_order.price => {
                     dbgp!("[ STRAT] Order found, passing");
                     dbgp!("[ STRAT] price = {}", price);
+                    self.strategy_buy_signal = Some(buy_order);
                 }
                 Some(Order {
                     id: _id,
@@ -206,6 +218,7 @@ impl<'a, 'b> OrderManagementSystem {
                 }) if price == sell_order.price => {
                     dbgp!("[ STRAT] Order found, passing");
                     dbgp!("[ STRAT] price = {}", price);
+                    self.strategy_sell_signal = Some(sell_order);
                 }
                 Some(Order {
                     id: _id,

@@ -1,4 +1,4 @@
-// use crate::dbgp;
+use crate::dbgp;
 use crate::event::LimitOrder;
 use crate::orderbook::{Order, OrderBook, Side};
 
@@ -200,7 +200,7 @@ impl OrderBook {
     pub fn process(&self, snap: Snap, ids: (u64, u64)) -> OrderBook {
         let buy_offset = self.get_offset(ids.0);
         let sell_offset = self.get_offset(ids.1);
-        // dbgp!("OFFSET {:?}", (buy_offset, sell_offset));
+        dbgp!("OFFSET {:?}", (buy_offset, sell_offset));
         next_snap(snap, (buy_offset, sell_offset))
     }
 }
