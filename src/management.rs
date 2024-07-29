@@ -1,7 +1,7 @@
 use crate::account::TradingAccount;
 use crate::dbgp;
 use crate::{
-    orderbook::{ExecutionReport, Order, OrderBook, Side},
+    orderbook::{ExecutionReport, Order, OrderBook, OrderStatus, Side},
     strategy::Strategy,
 };
 
@@ -123,12 +123,18 @@ impl<'a, 'b> OrderManagementSystem {
     }
     fn send_buy_order(&mut self, ob: &mut OrderBook) {
         let _ = ob.cancel_order(333);
-        let _ = ob.add_limit_order(self.strategy_buy_signal.unwrap());
+        let exec_report = ob.add_limit_order(self.strategy_buy_signal.unwrap());
+        if exec_report.status != OrderStatus::Created {
+            unreachable!();
+        }
         self.active_buy_order = self.strategy_buy_signal;
     }
     fn send_sell_order(&mut self, ob: &mut OrderBook) {
         let _ = ob.cancel_order(777);
-        let _ = ob.add_limit_order(self.strategy_sell_signal.unwrap());
+        let exec_report = ob.add_limit_order(self.strategy_sell_signal.unwrap());
+        if exec_report.status != OrderStatus::Created {
+            unreachable!();
+        }
         self.active_sell_order = self.strategy_sell_signal;
     }
 
@@ -149,8 +155,8 @@ impl<'a, 'b> OrderManagementSystem {
                     id: _id,
                     side: Side::Bid,
                     price,
-                    qty,
-                }) if price == buy_order.price && qty == buy_order.qty => {
+                    qty: _qty,
+                }) if price == buy_order.price => {
                     dbgp!("[ STRAT] Order found, passing");
                     dbgp!("[ STRAT] price = {}", price);
                 }
@@ -195,7 +201,7 @@ impl<'a, 'b> OrderManagementSystem {
                     id: _id,
                     side: Side::Ask,
                     price,
-                    qty,
+                    qty: _qty,
                     // }) if price == sell_order.price && qty == sell_order.qty => {
                 }) if price == sell_order.price => {
                     dbgp!("[ STRAT] Order found, passing");
@@ -229,8 +235,8 @@ impl<'a, 'b> OrderManagementSystem {
             let _ = ob.cancel_order(777);
             self.strategy_sell_signal = None;
         }
-        if send_buy_order && send_sell_order {
-            match self.active_sell_order {
+        match (send_buy_order, send_sell_order) {
+            (true, true) => match self.active_sell_order {
                 Some(active_sell) => {
                     if self.strategy_buy_signal.unwrap().price < active_sell.price {
                         self.send_buy_order(ob);
@@ -244,13 +250,14 @@ impl<'a, 'b> OrderManagementSystem {
                     self.send_buy_order(ob);
                     self.send_sell_order(ob);
                 }
+            },
+            (true, false) => {
+                self.send_buy_order(ob);
             }
-        }
-        if send_buy_order {
-            self.send_buy_order(ob);
-        }
-        if send_sell_order {
-            self.send_sell_order(ob);
+            (false, true) => {
+                self.send_sell_order(ob);
+            }
+            (false, false) => {}
         }
     }
 }
