@@ -110,6 +110,21 @@ impl<'a, 'b> OrderManagementSystem {
                 } else {
                     self.active_buy_order.unwrap().qty -= trader_filled_qty;
                 }
+                if let Some(active_buy) = self.active_buy_order {
+                    if trader_filled_qty == active_buy.qty {
+                        self.active_buy_order = None;
+                    } else {
+                        let qty = self.active_buy_order.unwrap().qty;
+                        dbgp!("BEFORE FILLED: {:?}", self.active_buy_order);
+                        self.active_buy_order = Some(Order {
+                            id: ids.0,
+                            side: Side::Bid,
+                            price: trader_filled_price,
+                            qty: qty - trader_filled_qty,
+                        });
+                        dbgp!("AFTER FILLED: {:?}", self.active_buy_order);
+                    }
+                }
             }
         } else {
             if let Some(key) = exec_report.filled_orders.iter().position(|&o| o.0 == ids.1) {
@@ -123,12 +138,27 @@ impl<'a, 'b> OrderManagementSystem {
                 self.strategy.master_position -= trader_filled_qty as i32;
                 self.account.balance += (trader_filled_qty * trader_filled_price) as i32;
                 dbgp!("TRADER FILLED: {}", trader_filled_qty);
-                if trader_filled_qty == self.active_sell_order.unwrap().qty {
-                    self.active_sell_order = None;
-                } else {
-                    self.active_sell_order.unwrap().qty -= trader_filled_qty;
+                if let Some(active_sell) = self.active_sell_order {
+                    if trader_filled_qty == active_sell.qty {
+                        self.active_sell_order = None;
+                    } else {
+                        let qty = self.active_sell_order.unwrap().qty;
+                        dbgp!("BEFORE FILLED: {:?}", self.active_sell_order);
+                        self.active_sell_order = Some(Order {
+                            id: ids.1,
+                            side: Side::Ask,
+                            price: trader_filled_price,
+                            qty: qty - trader_filled_qty,
+                        });
+                        dbgp!("AFTER FILLED: {:?}", self.active_sell_order);
+                    }
                 }
             }
+            dbgp!(
+                "Active Orders {:?}, {:?}",
+                self.active_buy_order,
+                self.active_sell_order
+            );
         };
         // std::mem::swap(&mut self.strategy.master_position, &mut new_position);
     }
@@ -154,6 +184,11 @@ impl<'a, 'b> OrderManagementSystem {
         let trader_sell_id = 777;
         let mut send_buy_order = false;
         let mut send_sell_order = false;
+        dbgp!(
+            "Active Orders {:?}, {:?}",
+            self.active_buy_order,
+            self.active_sell_order
+        );
         if let Ok(buy_order) = self.calculate_buy_order(m, trader_buy_id) {
             match self.active_buy_order {
                 None => {
