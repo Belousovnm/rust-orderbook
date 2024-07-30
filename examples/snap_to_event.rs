@@ -4,47 +4,31 @@ use orderbook::management::OrderManagementSystem;
 use orderbook::strategy::{Strategy, StrategyName};
 use orderbook::Indicator;
 use orderbook::{Order, OrderBook, Snap};
-use readable::num::*;
+use readable::num::Int;
 
-fn snap_to_event() {
-    let ob_path = "data/ob.csv";
-    let orders_path = "data/orders.csv";
-    dbgp!("Crafting Orderbook");
-    let mut ob = OrderBook::new("SecName".to_string());
+fn snap_to_event(
+    midprice: Indicator,
+    oms: &mut OrderManagementSystem,
+    ob: &mut OrderBook,
+    ob_path: &str,
+    orders_path: &str,
+) {
     let mut snap_reader = csv::Reader::from_path(ob_path).unwrap();
     let mut trade_reader = csv::Reader::from_path(orders_path).unwrap();
     let mut srdr = snap_reader.deserialize::<Snap>();
     let mut trdr = trade_reader.deserialize::<Order>();
-    let mut epoch = 0;
-    let mut next_order = Order::default();
     let trader_buy_id = 333;
     let trader_sell_id = 777;
-    let initial_balance = 0;
+    let mut epoch = 0;
+    let mut next_order = Order::default();
     let mut trading_volume = 0;
     let mut trade_count = 0;
-
-    // Setup Strat
-    let mut strat = Strategy::new(StrategyName::TestStrategy);
-    strat.buy_criterion = -0.0002;
-    strat.sell_criterion = 0.0002;
-    strat.buy_position_limit = 100;
-    strat.sell_position_limit = -100;
-    strat.qty = 100;
-
-    // Setup account
-    let money_account = TradingAccount::new(initial_balance);
-
-    // Setup OMS
-    let mut oms = OrderManagementSystem::new(strat, money_account);
-
-    // Setup Indicator
-    let midprice = Indicator::Midprice;
-
+    dbgp!("Crafting Orderbook");
     // Load first snapshot
     if let Some(Ok(first_snap)) = srdr.next() {
         epoch = first_snap.exch_epoch;
         dbgp!("[ EPCH ] snap {:?}", epoch);
-        ob = ob.process(first_snap, (trader_buy_id, trader_sell_id));
+        *ob = ob.process(first_snap, (trader_buy_id, trader_sell_id));
     }
 
     // Skip all trades that occured before the first snapshot
@@ -81,12 +65,12 @@ fn snap_to_event() {
             } else if next_order.id > epoch {
                 // Load next snap
                 dbgp!("[ EPCH ] snap {:?}", epoch);
-                ob = ob.process(snap, (trader_buy_id, trader_sell_id));
+                *ob = ob.process(snap, (trader_buy_id, trader_sell_id));
                 // Trader's move
                 let m = midprice.evaluate(&ob);
-                oms.send_orders(&mut ob, m);
-                dbgp!("{:?}", ob.get_order(trader_buy_id));
-                dbgp!("{:?}", ob.get_order(trader_sell_id));
+                oms.send_orders(ob, m);
+                // dbgp!("{:?}", ob.get_order(trader_buy_id));
+                // dbgp!("{:?}", ob.get_order(trader_sell_id));
                 break;
             }
         }
@@ -103,5 +87,23 @@ fn snap_to_event() {
 }
 
 fn main() {
-    snap_to_event()
+    let ob_path = "data/ob.csv";
+    let orders_path = "data/orders.csv";
+    let mut ob = OrderBook::new("SecName".to_string());
+    let mut strat = Strategy::new(StrategyName::TestStrategy);
+    let initial_balance = 0;
+    strat.buy_criterion = -0.0002;
+    strat.sell_criterion = 0.0002;
+    strat.buy_position_limit = 100;
+    strat.sell_position_limit = -100;
+    strat.qty = 100;
+
+    // Setup account
+    let money_account = TradingAccount::new(initial_balance);
+    // Setup Indicator
+    let midprice = Indicator::Midprice;
+    // Setup OMS
+    let mut oms = OrderManagementSystem::new(&mut strat, money_account);
+
+    snap_to_event(midprice, &mut oms, &mut ob, ob_path, orders_path);
 }
