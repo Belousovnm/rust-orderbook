@@ -20,7 +20,7 @@ fn ref_price_to_order_test(#[case] ob: OrderBook, #[case] expected: Result<Order
     let trader_id = 777;
     let midprice = Indicator::Midprice;
     let m = midprice.evaluate(&ob);
-    let oms = OrderManagementSystem::new(strategy, account);
+    let oms = OrderManagementSystem::new(&mut strategy, account);
     let trader_order = oms.calculate_buy_order(m, trader_id);
 
     assert_eq!(trader_order, expected);

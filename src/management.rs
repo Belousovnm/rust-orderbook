@@ -5,8 +5,8 @@ use crate::{
     strategy::Strategy,
 };
 
-pub struct OrderManagementSystem {
-    pub strategy: Strategy,
+pub struct OrderManagementSystem<'a> {
+    pub strategy: &'a mut Strategy,
     pub account: TradingAccount,
     pub active_buy_order: Option<Order>,
     pub active_sell_order: Option<Order>,
@@ -14,8 +14,8 @@ pub struct OrderManagementSystem {
     pub strategy_sell_signal: Option<Order>,
 }
 
-impl<'a, 'b> OrderManagementSystem {
-    pub fn new(strategy: Strategy, account: TradingAccount) -> Self {
+impl<'a, 'b> OrderManagementSystem<'b> {
+    pub fn new(strategy: &'b mut Strategy, account: TradingAccount) -> Self {
         Self {
             strategy,
             account,
@@ -40,12 +40,12 @@ impl<'a, 'b> OrderManagementSystem {
             0
         };
         let qty = self.strategy.qty.min(free_qty);
-        dbgp!(
-            "free_qty = {}, strategy_qty = {}, qty = {}",
-            free_qty,
-            self.strategy.qty,
-            qty
-        );
+        // dbgp!(
+        //     "free_qty = {}, strategy_qty = {}, qty = {}",
+        //     free_qty,
+        //     self.strategy.qty,
+        //     qty
+        // );
         if qty > 0 {
             let order = Order {
                 id,
@@ -73,12 +73,12 @@ impl<'a, 'b> OrderManagementSystem {
             0
         };
         let qty = self.strategy.qty.min(free_qty);
-        dbgp!(
-            "free_qty = {}, strategy_qty = {}, qty = {}",
-            free_qty,
-            self.strategy.qty,
-            qty
-        );
+        // dbgp!(
+        //     "free_qty = {}, strategy_qty = {}, qty = {}",
+        //     free_qty,
+        //     self.strategy.qty,
+        //     qty
+        // );
         if qty > 0 {
             let order = Order {
                 id,
@@ -115,14 +115,14 @@ impl<'a, 'b> OrderManagementSystem {
                         self.active_buy_order = None;
                     } else {
                         let qty = self.active_buy_order.unwrap().qty;
-                        dbgp!("BEFORE FILLED: {:?}", self.active_buy_order);
+                        // dbgp!("BEFORE FILLED: {:?}", self.active_buy_order);
                         self.active_buy_order = Some(Order {
                             id: ids.0,
                             side: Side::Bid,
                             price: trader_filled_price,
                             qty: qty - trader_filled_qty,
                         });
-                        dbgp!("AFTER FILLED: {:?}", self.active_buy_order);
+                        // dbgp!("AFTER FILLED: {:?}", self.active_buy_order);
                     }
                 }
             }
@@ -143,22 +143,22 @@ impl<'a, 'b> OrderManagementSystem {
                         self.active_sell_order = None;
                     } else {
                         let qty = self.active_sell_order.unwrap().qty;
-                        dbgp!("BEFORE FILLED: {:?}", self.active_sell_order);
+                        // dbgp!("BEFORE FILLED: {:?}", self.active_sell_order);
                         self.active_sell_order = Some(Order {
                             id: ids.1,
                             side: Side::Ask,
                             price: trader_filled_price,
                             qty: qty - trader_filled_qty,
                         });
-                        dbgp!("AFTER FILLED: {:?}", self.active_sell_order);
+                        // dbgp!("AFTER FILLED: {:?}", self.active_sell_order);
                     }
                 }
             }
-            dbgp!(
-                "Active Orders {:?}, {:?}",
-                self.active_buy_order,
-                self.active_sell_order
-            );
+            // dbgp!(
+            //     "Active Orders {:?}, {:?}",
+            //     self.active_buy_order,
+            //     self.active_sell_order
+            // );
         };
         // std::mem::swap(&mut self.strategy.master_position, &mut new_position);
     }
@@ -184,11 +184,11 @@ impl<'a, 'b> OrderManagementSystem {
         let trader_sell_id = 777;
         let mut send_buy_order = false;
         let mut send_sell_order = false;
-        dbgp!(
-            "Active Orders {:?}, {:?}",
-            self.active_buy_order,
-            self.active_sell_order
-        );
+        // dbgp!(
+        //     "Active Orders {:?}, {:?}",
+        //     self.active_buy_order,
+        //     self.active_sell_order
+        // );
         if let Ok(buy_order) = self.calculate_buy_order(m, trader_buy_id) {
             match self.active_buy_order {
                 None => {
