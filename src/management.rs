@@ -126,32 +126,30 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                     }
                 }
             }
-        } else {
-            if let Some(key) = exec_report.filled_orders.iter().position(|&o| o.0 == ids.1) {
-                let trader_filled_qty = exec_report.filled_orders[key].1;
-                let trader_filled_price = exec_report.filled_orders[key].2;
-                dbgp!(
-                    "[TRADE ] qty = {:?}, price = {:?}",
-                    trader_filled_qty,
-                    trader_filled_price,
-                );
-                self.strategy.master_position -= trader_filled_qty as i32;
-                self.account.balance += (trader_filled_qty * trader_filled_price) as i32;
-                dbgp!("TRADER FILLED: {}", trader_filled_qty);
-                if let Some(active_sell) = self.active_sell_order {
-                    if trader_filled_qty == active_sell.qty {
-                        self.active_sell_order = None;
-                    } else {
-                        let qty = self.active_sell_order.unwrap().qty;
-                        // dbgp!("BEFORE FILLED: {:?}", self.active_sell_order);
-                        self.active_sell_order = Some(Order {
-                            id: ids.1,
-                            side: Side::Ask,
-                            price: trader_filled_price,
-                            qty: qty - trader_filled_qty,
-                        });
-                        // dbgp!("AFTER FILLED: {:?}", self.active_sell_order);
-                    }
+        } else if let Some(key) = exec_report.filled_orders.iter().position(|&o| o.0 == ids.1) {
+            let trader_filled_qty = exec_report.filled_orders[key].1;
+            let trader_filled_price = exec_report.filled_orders[key].2;
+            dbgp!(
+                "[TRADE ] qty = {:?}, price = {:?}",
+                trader_filled_qty,
+                trader_filled_price,
+            );
+            self.strategy.master_position -= trader_filled_qty as i32;
+            self.account.balance += (trader_filled_qty * trader_filled_price) as i32;
+            dbgp!("TRADER FILLED: {}", trader_filled_qty);
+            if let Some(active_sell) = self.active_sell_order {
+                if trader_filled_qty == active_sell.qty {
+                    self.active_sell_order = None;
+                } else {
+                    let qty = self.active_sell_order.unwrap().qty;
+                    // dbgp!("BEFORE FILLED: {:?}", self.active_sell_order);
+                    self.active_sell_order = Some(Order {
+                        id: ids.1,
+                        side: Side::Ask,
+                        price: trader_filled_price,
+                        qty: qty - trader_filled_qty,
+                    });
+                    // dbgp!("AFTER FILLED: {:?}", self.active_sell_order);
                 }
             }
             // dbgp!(
@@ -210,16 +208,16 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                 Some(Order {
                     id: _id,
                     side: Side::Bid,
-                    price,
-                    qty,
+                    price: _price,
+                    qty: _qty,
                 }) => {
                     dbgp!("[ STRAT] Order found, need replace");
                     dbgp!(
                         "[ STRAT] Old price {}, New Price {}",
-                        price,
+                        _price,
                         buy_order.price
                     );
-                    dbgp!("[ STRAT] Old qty {}, New qty {}", qty, buy_order.qty);
+                    dbgp!("[ STRAT] Old qty {}, New qty {}", _qty, buy_order.qty);
                     dbgp!("[ STRAT] send {:#?}", buy_order);
                     self.strategy_buy_signal = Some(buy_order);
                     send_buy_order = true;
@@ -258,16 +256,16 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                 Some(Order {
                     id: _id,
                     side: Side::Ask,
-                    price,
-                    qty,
+                    price: _price,
+                    qty: _qty,
                 }) => {
                     dbgp!("[ STRAT] Order found, need replace");
                     dbgp!(
                         "[ STRAT] Old price {}, New Price {}",
-                        price,
+                        _price,
                         sell_order.price
                     );
-                    dbgp!("[ STRAT] Old qty {}, New qty {}", qty, sell_order.qty);
+                    dbgp!("[ STRAT] Old qty {}, New qty {}", _qty, sell_order.qty);
                     dbgp!("[ STRAT] send {:#?}", sell_order);
                     self.strategy_sell_signal = Some(sell_order);
                     send_sell_order = true;

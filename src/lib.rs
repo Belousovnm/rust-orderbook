@@ -9,15 +9,18 @@
 
 pub mod account;
 pub mod management;
-pub mod strategy;
 pub mod utils;
 
 mod event;
 mod indicators;
 mod orderbook;
 mod snap;
+mod strategy;
+mod strategy_flow;
 
 pub use event::*;
 pub use indicators::*;
 pub use orderbook::*;
 pub use snap::*;
+pub use strategy::*;
+pub use strategy_flow::*;

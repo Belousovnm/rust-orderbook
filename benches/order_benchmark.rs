@@ -33,10 +33,8 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut rng = rand::thread_rng();
     let mut group = c.benchmark_group("order-benchmark");
     group.sample_size(10);
-    group.measurement_time(Duration::new(20, 0));
-    group.bench_function("Match orders", |b| {
-        b.iter(|| run_orders(1_000_000, &mut rng))
-    });
+    group.measurement_time(Duration::new(5, 0));
+    group.bench_function("Match orders", |b| b.iter(|| run_orders(100_000, &mut rng)));
     /*
     group.bench_function("match 10000 orders on orderbook with 100k orders", |b| {
         b.iter(|| match_orders(&mut ob, &mut rng, normal))
