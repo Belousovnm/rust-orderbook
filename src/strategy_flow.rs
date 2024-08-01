@@ -1,7 +1,4 @@
-use crate::dbgp;
-use crate::management::OrderManagementSystem;
-use crate::Indicator;
-use crate::{Order, OrderBook, Snap};
+use crate::{dbgp, management::OrderManagementSystem, Indicator, Order, OrderBook, Snap};
 use readable::num::Unsigned;
 use std::fmt;
 
@@ -17,7 +14,7 @@ impl fmt::Display for StrategyMetrics {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "PnL abs     = {:.1}\nPnl_bps     = {:.3}\nVolume      = {}\nTrade Count = {}",
+            "PnL abs     = {:.1}\nPnl bps     = {:.3}\nVolume      = {}\nTrade Count = {}",
             self.pnl_abs,
             self.pnl_bps,
             Unsigned::from(self.volume),
