@@ -12,15 +12,18 @@ name = "orderbook-bin"
 path = "src/main.rs"
 
 [profile.release]
+lto = true
+opt-level = 3
 debug = false
 strip = true
-opt-level = 3
 codegen-units = 1
-lto = true
 panic = 'abort'
 
 [profile.bench]
-debug = true
+lto = true
+opt-level = 3
+codegen-units = 1 
+
 
 [dependencies]
 rand = "0.8.4"
