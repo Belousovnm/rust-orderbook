@@ -1,6 +1,9 @@
-use crate::dbgp;
-use crate::event::LimitOrder;
-use crate::orderbook::{Order, OrderBook, Side};
+#![allow(clippy::too_many_arguments)]
+use crate::{
+    dbgp,
+    event::LimitOrder,
+    orderbook::{Order, OrderBook, Side},
+};
 
 #[derive(Debug, Default)]
 #[allow(dead_code)]
@@ -53,6 +56,7 @@ fn place_head_tail(
     side: Side,
     price: u64,
 ) {
+    dbgp!("{} {} {} {:?} {}", qty_head, qty, qty_tail, side, price);
     let (qty_head, qty_tail) = if new_qty < qty_head + qty_tail {
         let need_to_cut = qty_tail + qty_head - new_qty;
         let cut_qty_tail = qty_tail.min(need_to_cut);
@@ -116,7 +120,7 @@ fn place_head_tail(
         });
     }
 }
-// need to keep sec_name
+
 fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) -> OrderBook {
     let mut ob = OrderBook::new();
     match (offsets.0.ok(), offsets.1.ok()) {

@@ -1,4 +1,5 @@
 // use std::time::SystemTime;
+// #![warn(clippy::pedantic)]
 mod event;
 mod orderbook;
 mod snap;
