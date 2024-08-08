@@ -46,6 +46,8 @@ pub fn snap_to_event(
         epoch = first_snap.exch_epoch;
         dbgp!("[ EPCH ] snap {:?}", epoch);
         *ob = ob.process(first_snap, (trader_buy_id, trader_sell_id));
+    } else {
+        println!("{:?}", srdr.next());
     }
 
     // Skip all trades that occured before the first snapshot

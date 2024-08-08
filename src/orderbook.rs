@@ -8,14 +8,14 @@ use std::{
 };
 
 #[repr(u8)]
-#[derive(Debug, PartialEq, Clone, Copy, Serialize, Default)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy, Serialize, Default)]
 pub enum Side {
     #[default]
     Bid,
     Ask,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum OrderStatus {
     Uninitialized,
     Created,
@@ -27,17 +27,17 @@ pub enum OrderStatus {
 pub struct ExecutionReport {
     // Orders filled (id, qty, price)
     pub taker_side: Side,
-    pub filled_orders: Vec<(u64, u64, u64)>,
-    pub remaining_qty: u64,
+    pub filled_orders: Vec<(u64, u32, u32)>,
+    pub remaining_qty: u32,
     pub status: OrderStatus,
 }
 
 impl ExecutionReport {
-    fn new() -> Self {
-        ExecutionReport {
+    const fn new() -> Self {
+        Self {
             taker_side: Side::Bid,
             filled_orders: Vec::new(),
-            remaining_qty: u64::MAX,
+            remaining_qty: u32::MAX,
             status: OrderStatus::Uninitialized,
         }
     }
@@ -57,32 +57,32 @@ impl ExecutionReport {
     }
 }
 
-#[derive(Debug, PartialEq, Default, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Default, Clone, Copy)]
 pub struct Order {
     pub id: u64,
     pub side: Side,
-    pub price: u64,
-    pub qty: u64,
+    pub price: u32,
+    pub qty: u32,
 }
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct HalfBook {
     side: Side,
-    price_map: BTreeMap<u64, usize>,
+    price_map: BTreeMap<u32, usize>,
     price_levels: Vec<VecDeque<Order>>,
 }
 
 impl HalfBook {
     pub fn new(side: Side) -> Self {
-        HalfBook {
+        Self {
             side,
             price_map: BTreeMap::new(),
             price_levels: Vec::with_capacity(16),
         }
     }
     #[allow(unused)]
-    pub fn get_total_qty(&self, price: u64) -> u64 {
+    pub fn get_total_qty(&self, price: u32) -> u32 {
         self.price_levels[self.price_map[&price]]
             .iter()
             .map(|s| s.qty)
@@ -93,18 +93,18 @@ impl HalfBook {
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct OrderBook {
-    pub best_bid_price: Option<u64>,
-    pub best_offer_price: Option<u64>,
+    pub best_bid_price: Option<u32>,
+    pub best_offer_price: Option<u32>,
     bid_book: HalfBook,
     ask_book: HalfBook,
     // id, (side, price_level, price)
-    pub order_loc: HashMap<u64, (Side, usize, u64)>,
+    pub order_loc: HashMap<u64, (Side, usize, u32)>,
 }
 
 #[allow(dead_code)]
 impl OrderBook {
     pub fn new() -> Self {
-        OrderBook {
+        Self {
             best_bid_price: None,
             best_offer_price: None,
             bid_book: HalfBook::new(Side::Bid),
@@ -127,7 +127,7 @@ impl OrderBook {
             if self.best_bid_price.is_some_and(|b| b == *price)
                 | self.best_offer_price.is_some_and(|a| a == *price)
             {
-                self.update_bbo()
+                self.update_bbo();
             }
             self.order_loc.remove(&order_id);
             Ok("Successfully cancelled order")
@@ -139,12 +139,12 @@ impl OrderBook {
     fn create_new_limit_order(
         &mut self,
         side: Side,
-        price: u64,
-        qty: u64,
+        price: u32,
+        qty: u32,
         order_id: Option<u64>,
     ) -> u64 {
         let mut rng = rand::thread_rng();
-        let order_id = order_id.unwrap_or(rng.gen());
+        let order_id = order_id.unwrap_or_else(|| rng.gen());
         let book = match side {
             Side::Ask => &mut self.ask_book,
             Side::Bid => &mut self.bid_book,
@@ -206,9 +206,9 @@ impl OrderBook {
 
     fn match_at_price_level(
         price_level: &mut VecDeque<Order>,
-        incoming_order_qty: &mut u64,
-        order_loc: &mut HashMap<u64, (Side, usize, u64)>,
-    ) -> (Vec<u64>, Vec<u64>) {
+        incoming_order_qty: &mut u32,
+        order_loc: &mut HashMap<u64, (Side, usize, u32)>,
+    ) -> (Vec<u64>, Vec<u32>) {
         let mut done_qty = Vec::new();
         let mut ids = Vec::new();
         let mut incomplete_fills: usize = 0;
@@ -244,12 +244,12 @@ impl OrderBook {
             let id = &pop.unwrap().id;
             order_loc.remove(id);
             // dbgp!("MATCHING ENGINE removed order {}", id);
-            ids.push(*id)
+            ids.push(*id);
         }
         if front_dec > 0 {
             let id = price_level.front().unwrap().id;
             price_level.front_mut().unwrap().qty -= front_dec;
-            ids.push(id)
+            ids.push(id);
         };
         (ids, done_qty)
     }
@@ -338,12 +338,12 @@ impl OrderBook {
 
         if side == Side::Bid {
             if self.best_bid_price.is_none() | self.best_bid_price.is_some_and(|b| price > b) {
-                self.update_bbo()
+                self.update_bbo();
             }
         } else if side == Side::Ask
             && self.best_offer_price.is_none() | self.best_offer_price.is_some_and(|a| price < a)
         {
-            self.update_bbo()
+            self.update_bbo();
         }
         exec_report.taker_side = side;
         exec_report.status = status;
@@ -354,7 +354,7 @@ impl OrderBook {
         exec_report
     }
 
-    pub fn get_bbo(&self) -> Result<(u64, u64, u64), &str> {
+    pub fn get_bbo(&self) -> Result<(u32, u32, u32), &str> {
         match (self.best_bid_price, self.best_offer_price) {
             (None, None) => Err("Both bid and offer HalfBooks are empty"),
             (Some(_bid), None) => Err("Offer HalfBook is empty"),
@@ -373,7 +373,7 @@ impl OrderBook {
             }
         }
     }
-    pub fn get_offset(&self, order_id: u64) -> Result<(Side, u64, u64, u64, u64, u64), &str> {
+    pub fn get_offset(&self, order_id: u64) -> Result<(Side, u32, u32, u32, u32, u64), &str> {
         if let Some((side, price_level, price)) = self.order_loc.get(&order_id) {
             let book = match side {
                 Side::Bid => &self.bid_book,
@@ -383,16 +383,24 @@ impl OrderBook {
             let mut qty_tail = 0;
             let mut qty = 0;
             let mut order_met = false;
-            let currdeque = book.price_levels.get(*price_level).unwrap();
-            for o in currdeque.iter() {
-                match o.id == order_id {
-                    false if !order_met => qty_head += o.qty,
-                    true => {
-                        qty = o.qty;
-                        order_met = true;
-                    }
-                    false if order_met => qty_tail += o.qty,
-                    _ => (),
+            // let currdeque = book.price_levels.get(*price_level).unwrap();
+            let currdeque = &book.price_levels[*price_level];
+            for o in currdeque {
+                // match o.id == order_id {
+                //     false if !order_met => qty_head += o.qty,
+                //     true => {
+                //         qty = o.qty;
+                //         order_met = true;
+                //     }
+                //     false if order_met => qty_tail += o.qty,
+                //     _ => (),
+                if o.id == order_id {
+                    qty = o.qty;
+                    order_met = true;
+                } else if o.id != order_id && !order_met {
+                    qty_head += o.qty;
+                } else if o.id != order_id && order_met {
+                    qty_tail += o.qty;
                 };
             }
             Ok((*side, *price, qty_head, qty, qty_tail, order_id))
@@ -407,7 +415,8 @@ impl OrderBook {
             Side::Bid => &self.bid_book,
             Side::Ask => &self.ask_book,
         };
-        let currdeque = book.price_levels.get(*price_level).unwrap();
+        // let currdeque = book.price_levels.get(*price_level).unwrap();
+        let currdeque = &book.price_levels[*price_level];
         let mut order = currdeque.iter().filter(|o| o.id == order_id);
         order.next()
     }

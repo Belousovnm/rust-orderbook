@@ -13,14 +13,14 @@ pub struct Snap {
 }
 impl Snap {
     fn new() -> Self {
-        Snap {
+        Self {
             exch_epoch: 0,
             vec: Vec::with_capacity(16),
         }
     }
 
     fn push(&mut self, item: LimitOrder) {
-        self.vec.push(item)
+        self.vec.push(item);
     }
 }
 
@@ -33,12 +33,13 @@ impl IntoIterator for Snap {
     }
 }
 
-type Offset = (Side, u64, u64, u64, u64, u64);
+type Offset = (Side, u32, u32, u32, u32, u64);
 
 fn place_order_from_snap(snap: Snap, ob: &mut OrderBook) {
     for (id, level) in snap.into_iter().enumerate() {
         let _ = ob.add_limit_order(Order {
-            id: id as u64,
+            id: u64::try_from(id).expect("ID CONVERTION FAILED"),
+            // id: id as u64,
             side: level.side,
             price: level.price,
             qty: level.qty,
@@ -48,13 +49,13 @@ fn place_order_from_snap(snap: Snap, ob: &mut OrderBook) {
 
 fn place_head_tail(
     ob: &mut OrderBook,
-    qty_head: u64,
-    qty_tail: u64,
-    qty: u64,
-    new_qty: u64,
+    qty_head: u32,
+    qty_tail: u32,
+    qty: u32,
+    new_qty: u32,
     id: u64,
     side: Side,
-    price: u64,
+    price: u32,
 ) {
     dbgp!("{} {} {} {:?} {}", qty_head, qty, qty_tail, side, price);
     let (qty_head, qty_tail) = if new_qty < qty_head + qty_tail {
@@ -131,7 +132,7 @@ fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) 
             let mut filtered_snap = Snap::new();
             let mut new_qty_bid = 0;
             let mut new_qty_ask = 0;
-            for level in snap.into_iter() {
+            for level in snap {
                 if level.price == price_bid && level.side == Side::Bid {
                     new_qty_bid = level.qty;
                 } else if level.price == price_ask && level.side == Side::Ask {
@@ -160,12 +161,12 @@ fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) 
                 id_ask,
                 Side::Ask,
                 price_ask,
-            )
+            );
         }
         (Some((side, bid_price, qty_head, qty, qty_tail, id)), None) => {
             let mut filtered_snap = Snap::new();
             let mut new_qty = 0;
-            for level in snap.into_iter() {
+            for level in snap {
                 if level.price == bid_price && level.side == Side::Bid {
                     new_qty = level.qty;
                 } else {
@@ -180,7 +181,7 @@ fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) 
         (None, Some((side, ask_price, qty_head, qty, qty_tail, id))) => {
             let mut filtered_snap = Snap::new();
             let mut new_qty = 0;
-            for level in snap.into_iter() {
+            for level in snap {
                 if level.price == ask_price && level.side == Side::Ask {
                     new_qty = level.qty;
                 } else {
@@ -201,7 +202,7 @@ fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) 
 }
 
 impl OrderBook {
-    pub fn process(&self, snap: Snap, ids: (u64, u64)) -> OrderBook {
+    pub fn process(&self, snap: Snap, ids: (u64, u64)) -> Self {
         let buy_offset = self.get_offset(ids.0);
         let sell_offset = self.get_offset(ids.1);
         dbgp!("OFFSET {:?}", (buy_offset, sell_offset));

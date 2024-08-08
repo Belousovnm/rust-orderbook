@@ -6,7 +6,7 @@ fn empty_ob() -> OrderBook {
     OrderBook::new()
 }
 
-fn full_ob(bid: u64, ask: u64) -> OrderBook {
+fn full_ob(bid: u32, ask: u32) -> OrderBook {
     let mut ob = OrderBook::new();
     let buy_order = Order {
         id: 666,

@@ -16,7 +16,7 @@ pub struct Strategy {
     pub master_position: i32,
     pub buy_position_limit: i32,
     pub sell_position_limit: i32,
-    pub qty: u64,
+    pub qty: u32,
 }
 
 impl Strategy {

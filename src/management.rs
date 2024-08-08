@@ -38,9 +38,9 @@ impl<'a, 'b> OrderManagementSystem<'b> {
     ) -> Result<Order, &'b str> {
         let side = Side::Bid;
         let price = (ref_price.ok_or("Missing Ref Price")? * (1.0 + self.strategy.buy_criterion))
-            .floor() as u64;
+            .floor() as u32;
         let free_qty = if self.strategy.buy_position_limit - self.strategy.master_position > 0 {
-            (self.strategy.buy_position_limit - self.strategy.master_position) as u64
+            (self.strategy.buy_position_limit - self.strategy.master_position) as u32
         } else {
             0
         };
@@ -71,9 +71,9 @@ impl<'a, 'b> OrderManagementSystem<'b> {
     ) -> Result<Order, &'b str> {
         let side = Side::Ask;
         let price = (ref_price.ok_or("Missing Ref Price")? * (1.0 + self.strategy.sell_criterion))
-            .ceil() as u64;
+            .ceil() as u32;
         let free_qty = if -self.strategy.sell_position_limit + self.strategy.master_position > 0 {
-            (-self.strategy.sell_position_limit + self.strategy.master_position) as u64
+            (-self.strategy.sell_position_limit + self.strategy.master_position) as u32
         } else {
             0
         };
@@ -169,7 +169,7 @@ impl<'a, 'b> OrderManagementSystem<'b> {
         // if self.active_buy_order.is_none() {
         let _ = ob.cancel_order(333);
         let _exec_report = ob.add_limit_order(self.strategy_buy_signal.unwrap());
-        dbgp!("New buy order {:?}", _exec_report);
+        // dbgp!("New buy order {:?}", exec_report);
         // } else {
         //     let _exec_report = ob.replace_limit_order(333, self.strategy_buy_signal.unwrap());
         //     dbgp!("Amend buy order {:?}", _exec_report);
@@ -183,7 +183,7 @@ impl<'a, 'b> OrderManagementSystem<'b> {
         // if self.active_sell_order.is_none() {
         let _ = ob.cancel_order(777);
         let _exec_report = ob.add_limit_order(self.strategy_sell_signal.unwrap());
-        dbgp!("New buy order {:?}", _exec_report);
+        // dbgp!("New buy order {:?}", exec_report);
         // } else {
         // let _exec_report = ob.replace_limit_order(777, self.strategy_sell_signal.unwrap());
         // dbgp!("Amend buy order {:?}", _exec_report);

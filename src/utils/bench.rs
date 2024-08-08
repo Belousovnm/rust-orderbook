@@ -1,7 +1,7 @@
 use std::arch::asm;
 
-#[allow(unused)]
-pub fn better_black_box(mut x: u64) -> u64 {
+#[allow(unused, asm_sub_register)]
+pub fn better_black_box(mut x: u32) -> u32 {
     unsafe {
         asm!("/* {x} */", x = inout(reg) x, options(nostack));
     }

@@ -1,5 +1,9 @@
 // use std::time::SystemTime;
-// #![warn(clippy::pedantic)]
+#![warn(clippy::pedantic)]
+#![warn(clippy::nursery)]
+#![allow(clippy::similar_names)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::cast_precision_loss)]
 mod event;
 mod orderbook;
 mod snap;
@@ -67,13 +71,13 @@ fn main() {
     };
     ob = ob.process(snap, (909, trader_order_id));
 
-    let _exec_report = ob.add_limit_order(Order {
+    let exec_report = ob.add_limit_order(Order {
         side: Side::Bid,
         price: 99,
         qty: 135,
         id: 1010,
     });
-    dbgp!("{:#?}", _exec_report);
+    dbgp!("{:#?}", exec_report);
 
     dbgp!("{:#?}", ob);
     let _ = ob.get_bbo();
