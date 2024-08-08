@@ -1,4 +1,5 @@
 // use std::time::SystemTime;
+// #![warn(clippy::pedantic)]
 mod event;
 mod orderbook;
 mod snap;
@@ -10,7 +11,7 @@ use snap::Snap;
 fn main() {
     dbgp!("Crafting Orderbook");
     let trader_order_id = 333;
-    let mut ob = OrderBook::new("MAIN".to_string());
+    let mut ob = OrderBook::new();
     let snap = Snap {
         exch_epoch: 0,
         vec: vec![
