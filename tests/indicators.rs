@@ -1,14 +1,13 @@
-use orderbook::Indicator;
-use orderbook::{Order, OrderBook, Side};
+use orderbook::{Indicator, Order, OrderBook, Side};
 use pretty_assertions::assert_eq;
 use rstest::rstest;
 
 fn empty_ob() -> OrderBook {
-    OrderBook::new("Indicator test".to_string())
+    OrderBook::new()
 }
 
 fn full_ob(bid: u64, ask: u64) -> OrderBook {
-    let mut ob = OrderBook::new("Indicator test".to_string());
+    let mut ob = OrderBook::new();
     let buy_order = Order {
         id: 666,
         side: Side::Bid,

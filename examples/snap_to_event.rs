@@ -4,9 +4,9 @@ use orderbook::{
 };
 
 fn main() {
-    let ob_path = "data/ob.csv";
-    let orders_path = "data/orders.csv";
-    let mut ob = OrderBook::new("SecName".to_string());
+    let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob_ALRS.2024-01-29.csv";
+    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders_ALRS.2024-01-29.csv";
+    let mut ob = OrderBook::new();
     let mut strat = Strategy::new(StrategyName::TestStrategy);
     let initial_balance = 0;
     strat.buy_criterion = -0.0002;

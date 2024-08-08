@@ -1,6 +1,11 @@
-use crate::account::TradingAccount;
-use crate::dbgp;
+//! TOBE design
+//! MD -> Indicator -> caclulate order ----> oms-send -> ob-apply order  
+//!                                     ^
+//!                                     |
+//!                               Active Orders   
 use crate::{
+    account::TradingAccount,
+    dbgp,
     orderbook::{ExecutionReport, Order, OrderBook, Side},
     strategy::Strategy,
 };
@@ -161,16 +166,28 @@ impl<'a, 'b> OrderManagementSystem<'b> {
         // std::mem::swap(&mut self.strategy.master_position, &mut new_position);
     }
     fn send_buy_order(&mut self, ob: &mut OrderBook) {
+        // if self.active_buy_order.is_none() {
         let _ = ob.cancel_order(333);
         let _exec_report = ob.add_limit_order(self.strategy_buy_signal.unwrap());
+        dbgp!("New buy order {:?}", _exec_report);
+        // } else {
+        //     let _exec_report = ob.replace_limit_order(333, self.strategy_buy_signal.unwrap());
+        //     dbgp!("Amend buy order {:?}", _exec_report);
+        // }
         // if _exec_report.status != OrderStatus::Created {
         //     unreachable!();
         // }
         self.active_buy_order = self.strategy_buy_signal;
     }
     fn send_sell_order(&mut self, ob: &mut OrderBook) {
+        // if self.active_sell_order.is_none() {
         let _ = ob.cancel_order(777);
         let _exec_report = ob.add_limit_order(self.strategy_sell_signal.unwrap());
+        dbgp!("New buy order {:?}", _exec_report);
+        // } else {
+        // let _exec_report = ob.replace_limit_order(777, self.strategy_sell_signal.unwrap());
+        // dbgp!("Amend buy order {:?}", _exec_report);
+        // }
         // if _exec_report.status != OrderStatus::Created {
         //     unreachable!();
         // }
@@ -211,7 +228,7 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                     price: _price,
                     qty: _qty,
                 }) => {
-                    dbgp!("[ STRAT] Order found, need replace");
+                    dbgp!("[ STRAT] Order found, need amend");
                     dbgp!(
                         "[ STRAT] Old price {}, New Price {}",
                         _price,
@@ -259,7 +276,7 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                     price: _price,
                     qty: _qty,
                 }) => {
-                    dbgp!("[ STRAT] Order found, need replace");
+                    dbgp!("[ STRAT] Order found, need amend");
                     dbgp!(
                         "[ STRAT] Old price {}, New Price {}",
                         _price,

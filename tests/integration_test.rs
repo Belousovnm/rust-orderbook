@@ -23,7 +23,7 @@ fn deser_level(deser: Snap) {
 
 #[rstest]
 fn deser_to_ob(deser: Snap) {
-    let mut ob = OrderBook::new("test".to_string());
+    let mut ob = OrderBook::new();
 
     let snap = deser;
     ob = ob.process(snap, (0, 0));
@@ -33,7 +33,7 @@ fn deser_to_ob(deser: Snap) {
 #[test]
 fn exec_report_test() {
     let trader_order_id = 333;
-    let mut ob = OrderBook::new("MAIN".to_string());
+    let mut ob = OrderBook::new();
     let snap = Snap {
         exch_epoch: 0,
         vec: vec![
@@ -94,9 +94,6 @@ fn exec_report_test() {
         qty: 135,
         id: 1010,
     });
-    let mut filled_orders = Vec::new();
-    filled_orders.push((222, 100, 99));
-    filled_orders.push((333, 10, 99));
-    filled_orders.push((444, 25, 99));
+    let filled_orders = vec![(222, 100, 99), (333, 10, 99), (444, 25, 99)];
     assert_eq!(exec_report.filled_orders, filled_orders);
 }

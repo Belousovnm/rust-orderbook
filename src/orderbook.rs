@@ -2,8 +2,10 @@
 use crate::dbgp;
 use rand::Rng;
 use serde::Serialize;
-use std::cmp::Ordering;
-use std::collections::{BTreeMap, HashMap, VecDeque};
+use std::{
+    cmp::Ordering,
+    collections::{BTreeMap, HashMap, VecDeque},
+};
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy, Serialize, Default)]
@@ -91,7 +93,6 @@ impl HalfBook {
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct OrderBook {
-    symbol: String,
     pub best_bid_price: Option<u64>,
     pub best_offer_price: Option<u64>,
     bid_book: HalfBook,
@@ -102,9 +103,8 @@ pub struct OrderBook {
 
 #[allow(dead_code)]
 impl OrderBook {
-    pub fn new(symbol: String) -> Self {
+    pub fn new() -> Self {
         OrderBook {
-            symbol,
             best_bid_price: None,
             best_offer_price: None,
             bid_book: HalfBook::new(Side::Bid),
@@ -410,5 +410,24 @@ impl OrderBook {
         let currdeque = book.price_levels.get(*price_level).unwrap();
         let mut order = currdeque.iter().filter(|o| o.id == order_id);
         order.next()
+    }
+
+    pub fn replace_limit_order(
+        &mut self,
+        order_id: u64,
+        new_order: Order,
+    ) -> Result<ExecutionReport, &str> {
+        if self.cancel_order(order_id).is_ok() {
+            let exec_report = self.add_limit_order(new_order);
+            Ok(exec_report)
+        } else {
+            Err("Order id={order_id} not found")
+        }
+    }
+}
+
+impl Default for OrderBook {
+    fn default() -> Self {
+        Self::new()
     }
 }

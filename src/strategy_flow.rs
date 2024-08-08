@@ -57,8 +57,9 @@ pub fn snap_to_event(
 
     'a: while let Some(Ok(snap)) = srdr.next() {
         epoch = snap.exch_epoch;
+        let strategy_epoch = epoch + 100;
         loop {
-            if next_order.id <= epoch {
+            if next_order.id <= epoch.min(strategy_epoch) {
                 // Apply order
                 dbgp!("[ EPCH ] order {:?}", next_order.id);
                 let exec_report = ob.add_limit_order(next_order);
@@ -79,7 +80,7 @@ pub fn snap_to_event(
                     break 'a;
                 }
             // If next snap before order
-            } else if next_order.id > epoch {
+            } else if epoch < next_order.id.min(strategy_epoch) {
                 // Load next snap
                 dbgp!("[ EPCH ] snap {:?}", epoch);
                 *ob = ob.process(snap, (trader_buy_id, trader_sell_id));
@@ -89,6 +90,7 @@ pub fn snap_to_event(
                 // dbgp!("{:?}", ob.get_order(trader_buy_id));
                 // dbgp!("{:?}", ob.get_order(trader_sell_id));
                 break;
+            } else if strategy_epoch < epoch.min(next_order.id) {
             }
         }
     }

@@ -2,12 +2,12 @@ use orderbook::{Order, OrderBook, Side};
 
 #[allow(dead_code)]
 pub fn empty_ob() -> OrderBook {
-    OrderBook::new("Indicator test".to_string())
+    OrderBook::new()
 }
 
 #[allow(dead_code)]
 pub fn full_ob() -> OrderBook {
-    let mut ob = OrderBook::new("Indicator test".to_string());
+    let mut ob = OrderBook::new();
     let buy_order = Order {
         id: 666,
         side: Side::Bid,

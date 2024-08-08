@@ -10,7 +10,7 @@ use snap::Snap;
 fn main() {
     dbgp!("Crafting Orderbook");
     let trader_order_id = 333;
-    let mut ob = OrderBook::new("MAIN".to_string());
+    let mut ob = OrderBook::new();
     let snap = Snap {
         exch_epoch: 0,
         vec: vec![

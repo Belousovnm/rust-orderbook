@@ -1,7 +1,7 @@
-use orderbook::account::TradingAccount;
-use orderbook::management::OrderManagementSystem;
-use orderbook::{snap_to_event, OrderBook, StrategyMetrics, StrategyName};
-use orderbook::{Indicator, Strategy};
+use orderbook::{
+    account::TradingAccount, management::OrderManagementSystem, snap_to_event, Indicator,
+    OrderBook, Strategy, StrategyMetrics, StrategyName,
+};
 use pretty_assertions::assert_eq;
 use rstest::rstest;
 
@@ -19,7 +19,7 @@ fn metrics_1() -> StrategyMetrics {
 fn snap_to_event_test(#[case] criterions: (f32, f32), #[case] expected: StrategyMetrics) {
     let ob_path = "data/ob.csv";
     let orders_path = "data/orders.csv";
-    let mut ob = OrderBook::new("SecName".to_string());
+    let mut ob = OrderBook::new();
     let mut strat = Strategy::new(StrategyName::TestStrategy);
     let initial_balance = 0;
     strat.buy_criterion = criterions.0;

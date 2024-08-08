@@ -118,7 +118,7 @@ fn place_head_tail(
 }
 // need to keep sec_name
 fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) -> OrderBook {
-    let mut ob = OrderBook::new("SNAP".to_string());
+    let mut ob = OrderBook::new();
     match (offsets.0.ok(), offsets.1.ok()) {
         (
             Some((Side::Bid, price_bid, qty_head_bid, qty_bid, qty_tail_bid, id_bid)),
@@ -231,7 +231,7 @@ mod tests {
             ],
         };
         // let offset = Ok((Side::Bid, 101, 0, 1, 0, 999));
-        let mut ob = OrderBook::new("TEST".to_string());
+        let mut ob = OrderBook::new();
         ob = ob.process(snap, (0, 0));
         assert_eq!(ob.get_bbo().unwrap(), (99, 101, 2));
     }

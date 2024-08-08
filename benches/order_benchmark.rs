@@ -4,7 +4,7 @@ use orderbook::{Order, OrderBook, Side};
 use rand::Rng;
 
 fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook {
-    let mut ob = OrderBook::new("BENCH".to_string());
+    let mut ob = OrderBook::new();
     let mut order_id = 0;
     for _ in 0..num_orders {
         order_id += 1;
