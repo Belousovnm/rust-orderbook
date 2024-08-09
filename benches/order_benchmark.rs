@@ -18,7 +18,7 @@ fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook 
         ob.add_limit_order(Order {
             side: Side::Ask,
             price: rng.gen_range(98..110),
-            qty: rng.gen_range(1..=500),
+            qty: rng.gen_range(1..=50),
             id: order_id,
         });
         if order_id > 100 {
