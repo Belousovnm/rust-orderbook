@@ -46,9 +46,9 @@ pretty_assertions = "1.4"
 name = "order_benchmark"
 harness = false
 
-[[bench]]
-name = "strategy_benchmark"
-harness = false
+# [[bench]]
+# name = "strategy_benchmark"
+# harness = false
 
 [[test]]
 name = "strategy_flow"

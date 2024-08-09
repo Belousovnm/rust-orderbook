@@ -1,22 +1,21 @@
-use core::time::Duration;
-use criterion::{criterion_group, criterion_main, Criterion};
-use csv::Reader;
+#![feature(test)]
+extern crate test;
 use orderbook::Snap;
-use std::fs::File;
+use std::hint::black_box;
 
-fn deserialize(snap_reader: &mut Reader<File>) {
-    let _srdr = snap_reader.deserialize::<Snap>();
-}
-
-pub fn criterion_benchmark(c: &mut Criterion) {
-    let ob_path = "data/ob.csv";
+fn deserialize_bench() {
+    let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob_ALRS.2024-01-29.csv";
     let snap_reader = &mut csv::Reader::from_path(ob_path).unwrap();
-    let mut group = c.benchmark_group("strategy-benchmark");
-    group.sample_size(10);
-    group.measurement_time(Duration::new(5, 0));
-    group.bench_function("deserialize", |b| b.iter(|| deserialize(snap_reader)));
-    group.finish();
+    black_box(black_box(snap_reader).deserialize::<Snap>());
 }
 
-criterion_group!(benches, criterion_benchmark);
-criterion_main!(benches);
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use test::Bencher;
+
+    #[bench]
+    fn bench_midprice(b: &mut Bencher) {
+        b.iter(|| deserialize_bench());
+    }
+}
