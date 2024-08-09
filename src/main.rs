@@ -71,13 +71,13 @@ fn main() {
     };
     ob = ob.process(snap, (909, trader_order_id));
 
-    let exec_report = ob.add_limit_order(Order {
+    let _exec_report = ob.add_limit_order(Order {
         side: Side::Bid,
         price: 99,
         qty: 135,
         id: 1010,
     });
-    dbgp!("{:#?}", exec_report);
+    // dbgp!("{:#?}", exec_report);
 
     dbgp!("{:#?}", ob);
     let _ = ob.get_bbo();
