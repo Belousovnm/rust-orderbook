@@ -11,10 +11,10 @@ fn deserialize(snap_reader: &mut Reader<File>) {
 pub fn criterion_benchmark(c: &mut Criterion) {
     let ob_path = "data/ob.csv";
     let snap_reader = &mut csv::Reader::from_path(ob_path).unwrap();
-    let mut group = c.benchmark_group("order-benchmark");
+    let mut group = c.benchmark_group("strategy-benchmark");
     group.sample_size(10);
     group.measurement_time(Duration::new(5, 0));
-    group.bench_function("Match orders", |b| b.iter(|| deserialize(snap_reader)));
+    group.bench_function("deserialize", |b| b.iter(|| deserialize(snap_reader)));
     group.finish();
 }
 
