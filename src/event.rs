@@ -471,6 +471,9 @@ impl<'de> Deserialize<'de> for Order {
                     side,
                     price: price.unwrap(),
                     qty: qty.unwrap(),
+                    is_synth: false,
+                    send_time: 0,
+                    fill_time: 0
                 })
             }
         }

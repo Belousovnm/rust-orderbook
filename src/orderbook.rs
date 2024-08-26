@@ -63,14 +63,17 @@ pub struct Order {
     pub side: Side,
     pub price: u32,
     pub qty: u32,
+    pub is_synth: bool,
+    pub send_time: u64,
+    pub fill_time: u64,
 }
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct HalfBook {
     side: Side,
-    price_map: BTreeMap<u32, usize>,
-    price_levels: Vec<VecDeque<Order>>,
+    pub price_map: BTreeMap<u32, usize>,
+    pub price_levels: Vec<VecDeque<Order>>,
 }
 
 impl HalfBook {
@@ -95,8 +98,8 @@ impl HalfBook {
 pub struct OrderBook {
     pub best_bid_price: Option<u32>,
     pub best_offer_price: Option<u32>,
-    bid_book: HalfBook,
-    ask_book: HalfBook,
+    pub bid_book: HalfBook,
+    pub ask_book: HalfBook,
     // id, (side, price_level, price)
     pub order_loc: HashMap<u64, (Side, usize, u32)>,
 }
@@ -154,6 +157,9 @@ impl OrderBook {
             side,
             price,
             qty,
+            is_synth: false,
+            send_time: 0,
+            fill_time: 0
         };
 
         if let Some(val) = book.price_map.get(&price) {
@@ -207,50 +213,72 @@ impl OrderBook {
     fn match_at_price_level(
         price_level: &mut VecDeque<Order>,
         incoming_order_qty: &mut u32,
-        order_loc: &mut HashMap<u64, (Side, usize, u32)>,
+        _order_loc: &mut HashMap<u64, (Side, usize, u32)>,
+        incoming_order_time: u64
     ) -> (Vec<u64>, Vec<u32>) {
         let mut done_qty = Vec::new();
         let mut ids = Vec::new();
         let mut incomplete_fills: usize = 0;
         let mut front_dec = 0;
-        for o in price_level.iter() {
+        let mut front_id = 0;
+        for o in price_level.iter_mut() {
             if *incoming_order_qty > 0 {
                 match o.qty.cmp(incoming_order_qty) {
                     Ordering::Less => {
-                        dbgp!("[ FILL ]    Incomplete {}", o.price);
-                        *incoming_order_qty -= o.qty;
-                        done_qty.push(o.qty);
-                        incomplete_fills += 1;
+                        if !o.is_synth {
+                            dbgp!("[ FILL ]    Incomplete {}", o.price);
+                            *incoming_order_qty -= o.qty;
+                            done_qty.push(o.qty);
+                            incomplete_fills += 1;
+                        } else if o.qty > 0
+                        {
+                            dbgp!("[ FILL SYNTH ] Incomplete {}", o.price);
+                            o.qty = 0;
+                            // todo log fill time = ((incoming_order_time - o.send_time) as f32) / (1000000000 as f32);
+
+                        }
                     }
                     Ordering::Equal => {
-                        dbgp!("[ FILL ]    Complete {}", o.price);
-                        done_qty.push(o.qty);
-                        incomplete_fills += 1;
-                        *incoming_order_qty = 0;
+                        if !o.is_synth {
+                            dbgp!("[ FILL ]    Complete {}", o.price);
+                            done_qty.push(o.qty);
+                            incomplete_fills += 1;
+                            *incoming_order_qty = 0;
+                        } else
+                        {
+                            dbgp!("[ FILL SYNTH ] Complete {}", o.price);
+                            o.qty = 0;
+                            // todo log fill time = ((incoming_order_time - o.send_time) as f32) / (1000000000 as f32);
+                        }
                     }
                     Ordering::Greater => {
-                        dbgp!("[ FILL ]    Complete {}", o.price);
-                        done_qty.push(*incoming_order_qty);
-                        front_dec = *incoming_order_qty;
-                        *incoming_order_qty = 0;
+                        if !o.is_synth {
+                            dbgp!("[ FILL ]    Complete {}", o.price);
+                            done_qty.push(*incoming_order_qty);
+                            front_dec = *incoming_order_qty;
+                            *incoming_order_qty = 0;
+                            o.qty -= front_dec;
+                            front_id = o.id;
+                        } else {
+                            dbgp!("[ FILL SYNTH ] Complete {}", o.price);
+                            o.qty -= *incoming_order_qty;
+                        }
                     }
                 }
             } else {
                 break;
             }
         }
+
         for _ in 0..incomplete_fills {
             let pop = price_level.pop_front();
             let id = &pop.unwrap().id;
-            order_loc.remove(id);
-            // dbgp!("MATCHING ENGINE removed order {}", id);
-            ids.push(*id);
+
+            ids.push(*id)
         }
         if front_dec > 0 {
-            let id = price_level.front().unwrap().id;
-            price_level.front_mut().unwrap().qty -= front_dec;
-            ids.push(id);
-        };
+            ids.push(front_id)
+        }
         (ids, done_qty)
     }
 
@@ -282,6 +310,7 @@ impl OrderBook {
                             &mut price_levels[curr_level],
                             &mut remaining_order_qty,
                             &mut self.order_loc,
+                            order.send_time
                         );
                         for i in 0..id_vec.len() {
                             dbgp!("[ INFO ]    Matched {}@{} id={}", qty_vec[i], x, id_vec[i]);
@@ -308,6 +337,7 @@ impl OrderBook {
                             &mut price_levels[curr_level],
                             &mut remaining_order_qty,
                             &mut self.order_loc,
+                            order.send_time
                         );
                         for i in 0..id_vec.len() {
                             dbgp!("[ INFO ]    Matched {}@{} {}", qty_vec[i], x, id_vec[i]);
