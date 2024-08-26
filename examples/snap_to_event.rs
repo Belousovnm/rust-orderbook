@@ -5,7 +5,7 @@ use orderbook::{
 
 fn main() {
     let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob_SBER.2023-11-16.csv";
-    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders_SBER.2023-11-16.csv";
+    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob_SBER.2023-11-16.csv";
     let mut ob = OrderBook::new();
     let mut strat = Strategy::new(StrategyName::TestStrategy);
     let initial_balance = 0;
