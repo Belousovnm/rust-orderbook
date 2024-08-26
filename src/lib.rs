@@ -1,13 +1,14 @@
-// TODO: pure Array > BTreeMap?
+// PERF: contig Array > BTreeMap?
+// PERF: Stack alloc
+// PERF: VecDeque is not contigous?
+// PEPR: SNAP -> L3 -> shortest update
 // TODO: TUI orderbook
-// FEATURE: "Replace" order Type
-// store total qty on level
-// Problem: VecDeque is not contigous?
-// Updates from deltas
+// Store total qty on level
 // Add Strategy builder
 // Add typestate
 
 pub mod account;
+pub mod diff;
 pub mod management;
 pub mod utils;
 

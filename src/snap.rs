@@ -212,7 +212,6 @@ impl OrderBook {
 #[cfg(test)]
 mod tests {
 
-    // use crate::{next_snap, OrderBook, Side};
     use super::*;
     use crate::orderbook::Side;
     use pretty_assertions::assert_eq;
