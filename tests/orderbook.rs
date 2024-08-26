@@ -15,7 +15,7 @@ fn avg_fill_price_test(#[case] mut ob: OrderBook, #[case] expected: Option<f32>)
 
 #[rstest]
 #[case(empty_ob(), None)]
-#[case(full_ob(), Some(&Order {id: 666, side: Side::Bid, price: 99, qty: 10 }))]
+#[case(full_ob(), Some(&Order {id: 666, side: Side::Bid, price: 99, qty: 10, is_synth: false, send_time: 0, fill_time: 0 }))]
 fn get_order_test(#[case] ob: OrderBook, #[case] expected: Option<&Order>) {
     let order = ob.get_order(666);
     assert_eq!(order, expected)

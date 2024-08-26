@@ -10,7 +10,7 @@ use rstest::rstest;
 
 #[rstest]
 #[case(empty_ob(), Err("Missing Ref Price"))]
-#[case(full_ob(), Ok(Order{id: 777, side: Side::Bid, price: 100, qty: 10}))]
+#[case(full_ob(), Ok(Order{id: 777, side: Side::Bid, price: 100, qty: 10, is_synth: false, send_time: 0, fill_time: 0}))]
 fn ref_price_to_order_test(#[case] ob: OrderBook, #[case] expected: Result<Order, &str>) {
     let mut strategy = Strategy::new(StrategyName::TestStrategy);
     let account = TradingAccount::new(0);

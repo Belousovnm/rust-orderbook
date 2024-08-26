@@ -13,6 +13,9 @@ pub fn full_ob() -> OrderBook {
         side: Side::Bid,
         price: 99,
         qty: 10,
+        is_synth: false,
+        send_time: 0,
+        fill_time: 0
     };
     ob.add_limit_order(buy_order);
     let sell_order = Order {
@@ -20,6 +23,9 @@ pub fn full_ob() -> OrderBook {
         side: Side::Ask,
         price: 101,
         qty: 10,
+        is_synth: false,
+        send_time: 0,
+        fill_time: 0
     };
     ob.add_limit_order(sell_order);
     let sell_order = Order {
@@ -27,6 +33,9 @@ pub fn full_ob() -> OrderBook {
         side: Side::Ask,
         price: 102,
         qty: 10,
+        is_synth: false,
+        send_time: 0,
+        fill_time: 0
     };
     ob.add_limit_order(sell_order);
     let sell_order = Order {
@@ -34,6 +43,9 @@ pub fn full_ob() -> OrderBook {
         side: Side::Ask,
         price: 103,
         qty: 10,
+        is_synth: false,
+        send_time: 0,
+        fill_time: 0
     };
     ob.add_limit_order(sell_order);
     ob
@@ -46,5 +58,8 @@ pub fn taker_buy_order() -> Order {
         side: Side::Bid,
         price: 9999,
         qty: 30,
+        is_synth: false,
+        send_time: 0,
+        fill_time: 0
     }
 }
