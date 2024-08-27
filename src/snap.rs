@@ -145,7 +145,6 @@ fn place_head_tail(
     }
 }
 
-
 fn process_stale_level(level : &VecDeque<Order>)
 {
     for o in level {
@@ -173,8 +172,8 @@ fn filter_stale_synth_orders(level: &VecDeque<Order>, cur_epoch : u64) -> VecDeq
 
     let filtered_result: VecDeque<Order> = level
         .iter()
-        .filter(|order| ((order.is_synth && cur_epoch.abs_diff(order.send_time) < 10000000000 && order.qty > 0) || !order.is_synth))
-        .cloned() // Clone the orders to create a new VecDeque
+        .filter(|order| (!order.is_synth || cur_epoch.abs_diff(order.send_time) < 10_000_000_000 && order.qty > 0))
+        .copied() // Clone the orders to create a new VecDeque
         .collect();
 
     filtered_result
@@ -187,23 +186,22 @@ fn merge_level_with_qty(level: &mut VecDeque<Order>, qty : u32, cur_epoch : u64)
     for o in &mut *level {
 
         if !o.is_synth {
-            if !need_retain
-            {
-                o.fill_time = u64::MAX;
-            } else {
+            if need_retain {
                 tot_qty += o.qty;
                 if tot_qty >= qty {
                     need_retain = false;
                     o.qty -= tot_qty - qty;
                 }
+            } else {
+                o.fill_time = u64::MAX;
             }
         }
     }
 
     let filtered_result: VecDeque<Order> = level
         .iter()
-        .filter(|order| ((order.is_synth && cur_epoch.abs_diff(order.send_time) < 10000000000 && order.qty > 0) || (!order.is_synth && order.fill_time != u64::MAX)))
-        .cloned() // Clone the orders to create a new VecDeque
+        .filter(|order| ((order.is_synth && cur_epoch.abs_diff(order.send_time) < 10_000_000_000 && order.qty > 0) || (!order.is_synth && order.fill_time != u64::MAX)))
+        .copied() // Clone the orders to create a new VecDeque
         .collect();
 
     filtered_result
@@ -244,10 +242,8 @@ fn merge_halfbook_with_snap(halfbook: &mut HalfBook, snap: &Snap, side:Side, bou
                 result_ob.price_levels.push(filtered_level);
                 result_ob.price_map.insert(cur_book_price, i_result);
                 i_result += 1;
-                i_book += 1;
-            } else {
-                i_book += 1;
             }
+            i_book += 1;
         } else if cur_book_price == cur_snap_price {
             // Merge the level with Snap's qty
             let merged_level = merge_level_with_qty(& mut halfbook.price_levels[i_book], snap.vec[i_snap].qty, snap.exch_epoch);
@@ -263,9 +259,9 @@ fn merge_halfbook_with_snap(halfbook: &mut HalfBook, snap: &Snap, side:Side, bou
             let qty = lo.qty;
             let o = Order {
                 id: i_result as u64,
-                side: side,
-                price: price,
-                qty: qty,
+                side,
+                price,
+                qty,
                 is_synth: false,
                 send_time: 0,
                 fill_time: 0,
@@ -299,11 +295,8 @@ fn merge_halfbook_with_snap(halfbook: &mut HalfBook, snap: &Snap, side:Side, bou
             result_ob.price_levels.push(filtered_level);
             result_ob.price_map.insert(cur_book_price, i_result);
             i_result += 1;
-            i_book += 1;
-        } else
-        {
-            i_book += 1;
         }
+        i_book += 1;
     }
 
     while i_snap < snap.vec.len() {
@@ -313,9 +306,9 @@ fn merge_halfbook_with_snap(halfbook: &mut HalfBook, snap: &Snap, side:Side, bou
         let qty = lo.qty;
         let o = Order {
             id: i_result as u64,
-            side: side,
-            price: price,
-            qty: qty,
+            side,
+            price,
+            qty,
             is_synth: false,
             send_time: 0,
             fill_time: 0,
@@ -332,7 +325,7 @@ fn merge_halfbook_with_snap(halfbook: &mut HalfBook, snap: &Snap, side:Side, bou
     result_ob
 }
 
-unsafe fn next_snap_fp(snap: Snap, ob : & mut OrderBook) -> OrderBook {
+unsafe fn next_snap_fp(snap: &Snap, ob : & mut OrderBook) -> OrderBook {
 
     let mut ob_res = OrderBook::new();
 
@@ -361,10 +354,6 @@ unsafe fn next_snap_fp(snap: Snap, ob : & mut OrderBook) -> OrderBook {
 
     ob_res.ask_book = ask_book;
     ob_res.bid_book = bid_book;
-
-    for o in  &ob_res.bid_book.price_levels[1] {
-        let _s_t = o.send_time;
-    }
 
     ob_res
 }
@@ -456,7 +445,9 @@ impl OrderBook {
         next_snap(snap, (buy_offset, sell_offset))
     }
 
-    pub unsafe fn process_fp(& mut self, snap: Snap) -> OrderBook {
+    /// # Safety
+    ///
+    pub unsafe fn process_fp(& mut self, snap: &Snap) -> Self {
         dbgp!("snap::order_book::process {:?}", 100);
         next_snap_fp(snap, self)
     }

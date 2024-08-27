@@ -360,12 +360,12 @@ impl<'a, 'b> OrderManagementSystem<'b> {
         );
         if qty > 0 {
             let order = Order {
-                id : id,
-                side : side,
-                price : price,
-                qty : qty,
+                id,
+                side,
+                price,
+                qty,
                 is_synth : true,
-                send_time : send_time,
+                send_time,
                 fill_time : 0
             };
             Ok(order)
@@ -398,12 +398,12 @@ impl<'a, 'b> OrderManagementSystem<'b> {
         );
         if qty > 0 {
             let order = Order {
-                id : id,
-                side : side,
-                price : price,
-                qty : qty,
+                id,
+                side,
+                price,
+                qty,
                 is_synth : true,
-                send_time : send_time,
+                send_time,
                 fill_time : 0
             };
             Ok(order)

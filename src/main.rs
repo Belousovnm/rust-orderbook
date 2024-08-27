@@ -16,6 +16,7 @@ fn main() {
     dbgp!("Crafting Orderbook");
     let trader_order_id = 333;
     let mut ob = OrderBook::new();
+
     let snap = Snap {
         exch_epoch: 0,
         vec: vec![
@@ -37,7 +38,13 @@ fn main() {
         ],
     };
     // println!("{:?}", SystemTime::now());
-    ob = ob.process(snap, (909, trader_order_id));
+    if true {
+        ob = ob.process(snap, (909, trader_order_id));
+    } else {
+        unsafe {
+            ob = ob.process_fp(&snap);
+        }
+    }
     // if matches! {fr.status, OrderStatus::Filled} {
     //     dbgp!("{:#?}, avg_fill_price {}", fr, fr.avg_fill_price());
     // }

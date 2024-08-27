@@ -23,6 +23,9 @@ impl fmt::Display for StrategyMetrics {
     }
 }
 
+
+/// # Safety
+///
 pub unsafe fn snap_to_event_fp(
     midprice: Indicator,
     oms: &mut OrderManagementSystem,
@@ -45,7 +48,7 @@ pub unsafe fn snap_to_event_fp(
     if let Some(Ok(first_snap)) = srdr.next() {
         epoch = first_snap.exch_epoch;
         dbgp!("[ EPCH ] snap {:?}", epoch);
-        *ob = ob.process_fp(first_snap);
+        *ob = ob.process_fp(&first_snap);
     } else {
         println!("{:?}", srdr.next());
     }
@@ -87,7 +90,7 @@ pub unsafe fn snap_to_event_fp(
             } else if epoch < next_order.id.min(strategy_epoch) {
                 // Load next snap
                 dbgp!("[ EPCH ] snap {:?}", epoch);
-                *ob = ob.process_fp(snap);
+                *ob = ob.process_fp(&snap);
                 // Trader's move
                 let m = midprice.evaluate(ob);
                 oms.send_orders(ob, m);

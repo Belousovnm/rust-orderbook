@@ -225,43 +225,44 @@ impl OrderBook {
             if *incoming_order_qty > 0 {
                 match o.qty.cmp(incoming_order_qty) {
                     Ordering::Less => {
-                        if !o.is_synth {
+                        if o.is_synth {
+                            if o.qty > 0 {
+                                let fill_time = ((incoming_order_time - o.send_time) as f32) / (1_000_000_000 as f32);
+                                dbgp!("[ FILL SYNTH ] Incomplete {} fill_time {}", o.price, fill_time);
+                                o.qty = 0;
+                                // todo log fill time = ((incoming_order_time - o.send_time) as f32) / (1000000000 as f32);
+                            }
+                        } else {
                             dbgp!("[ FILL ]    Incomplete {}", o.price);
                             *incoming_order_qty -= o.qty;
                             done_qty.push(o.qty);
                             incomplete_fills += 1;
-                        } else if o.qty > 0
-                        {
-                            dbgp!("[ FILL SYNTH ] Incomplete {}", o.price);
-                            o.qty = 0;
-                            // todo log fill time = ((incoming_order_time - o.send_time) as f32) / (1000000000 as f32);
-
                         }
                     }
                     Ordering::Equal => {
-                        if !o.is_synth {
+                        if o.is_synth {
+                            let fill_time = ((incoming_order_time - o.send_time) as f32) / (1_000_000_000 as f32);
+                            dbgp!("[ FILL SYNTH ] Complete {} fill_time {}", o.price, fill_time);
+                            o.qty = 0;
+                            // todo log fill time = ((incoming_order_time - o.send_time) as f32) / (1000000000 as f32);
+                        } else {
                             dbgp!("[ FILL ]    Complete {}", o.price);
                             done_qty.push(o.qty);
                             incomplete_fills += 1;
                             *incoming_order_qty = 0;
-                        } else
-                        {
-                            dbgp!("[ FILL SYNTH ] Complete {}", o.price);
-                            o.qty = 0;
-                            // todo log fill time = ((incoming_order_time - o.send_time) as f32) / (1000000000 as f32);
                         }
                     }
                     Ordering::Greater => {
-                        if !o.is_synth {
+                        if o.is_synth {
+                            dbgp!("[ FILL SYNTH ] Complete {}", o.price);
+                            o.qty -= *incoming_order_qty;
+                        } else {
                             dbgp!("[ FILL ]    Complete {}", o.price);
                             done_qty.push(*incoming_order_qty);
                             front_dec = *incoming_order_qty;
                             *incoming_order_qty = 0;
                             o.qty -= front_dec;
                             front_id = o.id;
-                        } else {
-                            dbgp!("[ FILL SYNTH ] Complete {}", o.price);
-                            o.qty -= *incoming_order_qty;
                         }
                     }
                 }
@@ -274,10 +275,10 @@ impl OrderBook {
             let pop = price_level.pop_front();
             let id = &pop.unwrap().id;
 
-            ids.push(*id)
+            ids.push(*id);
         }
         if front_dec > 0 {
-            ids.push(front_id)
+            ids.push(front_id);
         }
         (ids, done_qty)
     }
