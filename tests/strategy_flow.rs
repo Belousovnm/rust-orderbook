@@ -1,6 +1,6 @@
+use orderbook::backtest::{snap_to_event, Strategy, StrategyName};
 use orderbook::{
-    account::TradingAccount, management::OrderManagementSystem, snap_to_event, Indicator,
-    OrderBook, Strategy, StrategyMetrics, StrategyName,
+    account::TradingAccount, management::OrderManagementSystem, Indicator, OrderBook, Strategy,
 };
 use pretty_assertions::assert_eq;
 use rstest::rstest;

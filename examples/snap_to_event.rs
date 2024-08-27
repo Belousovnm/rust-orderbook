@@ -1,7 +1,6 @@
-use orderbook::{
-    account::TradingAccount, management::OrderManagementSystem, snap_to_event, Indicator,
-    OrderBook, Strategy, StrategyName,
-};
+use orderbook::backtest::snap_to_event;
+use orderbook::backtest::{Strategy, StrategyName};
+use orderbook::{account::TradingAccount, management::OrderManagementSystem, Indicator, OrderBook};
 
 fn main() {
     let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob_ALRS.2024-01-29.csv";

@@ -1,10 +1,11 @@
 mod common;
 use common::{empty_ob, full_ob};
-use orderbook::account::TradingAccount;
-use orderbook::management::OrderManagementSystem;
-use orderbook::Indicator;
-use orderbook::{Order, OrderBook, Side};
-use orderbook::{Strategy, StrategyName};
+use orderbook::{
+    account::TradingAccount,
+    backtest::{Strategy, StrategyName},
+    management::OrderManagementSystem,
+    Indicator, Order, OrderBook, Side,
+};
 use pretty_assertions::assert_eq;
 use rstest::rstest;
 
