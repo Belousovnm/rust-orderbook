@@ -5,9 +5,9 @@
 //!                               Active Orders   
 use crate::{
     account::TradingAccount,
+    backtest::Strategy,
     dbgp,
     orderbook::{ExecutionReport, Order, OrderBook, Side},
-    strategy::Strategy,
 };
 
 pub struct OrderManagementSystem<'a> {
