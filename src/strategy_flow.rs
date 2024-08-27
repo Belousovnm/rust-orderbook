@@ -92,7 +92,7 @@ pub fn snap_to_event_fp(
                 *ob = ob.process_fp(&snap);
                 // Trader's move
                 let m = midprice.evaluate(ob);
-                oms.send_orders(ob, m);
+                oms.send_orders_fp(ob, m, epoch, 5);
                 // dbgp!("{:?}", ob.get_order(trader_buy_id));
                 // dbgp!("{:?}", ob.get_order(trader_sell_id));
                 break;
