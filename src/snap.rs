@@ -325,7 +325,7 @@ fn merge_halfbook_with_snap(halfbook: &mut HalfBook, snap: &Snap, side:Side, bou
     result_ob
 }
 
-unsafe fn next_snap_fp(snap: &Snap, ob : & mut OrderBook) -> OrderBook {
+fn next_snap_fp(snap: &Snap, ob : & mut OrderBook) -> OrderBook {
 
     let mut ob_res = OrderBook::new();
 
@@ -447,7 +447,7 @@ impl OrderBook {
 
     /// # Safety
     ///
-    pub unsafe fn process_fp(& mut self, snap: &Snap) -> Self {
+    pub fn process_fp(& mut self, snap: &Snap) -> Self {
         dbgp!("snap::order_book::process {:?}", 100);
         next_snap_fp(snap, self)
     }

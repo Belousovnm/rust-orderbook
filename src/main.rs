@@ -41,9 +41,7 @@ fn main() {
     if true {
         ob = ob.process(snap, (909, trader_order_id));
     } else {
-        unsafe {
-            ob = ob.process_fp(&snap);
-        }
+        ob = ob.process_fp(&snap);
     }
     // if matches! {fr.status, OrderStatus::Filled} {
     //     dbgp!("{:#?}, avg_fill_price {}", fr, fr.avg_fill_price());

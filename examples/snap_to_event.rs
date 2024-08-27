@@ -35,7 +35,7 @@ fn main() {
 
 
     if is_fp {
-        unsafe {snap_to_event_fp(midprice, &mut oms, &mut ob, ob_path, orders_path); }
+        snap_to_event_fp(midprice, &mut oms, &mut ob, ob_path, orders_path);
     } else {
         snap_to_event(midprice, &mut oms, &mut ob, ob_path, orders_path);
     }
