@@ -23,10 +23,9 @@ impl fmt::Display for StrategyMetrics {
     }
 }
 
-
 /// # Safety
 ///
-pub  fn snap_to_event_fp(
+pub fn snap_to_event_fp(
     midprice: Indicator,
     oms: &mut OrderManagementSystem,
     ob: &mut OrderBook,

@@ -159,7 +159,7 @@ impl OrderBook {
             qty,
             is_synth: false,
             send_time: 0,
-            fill_time: 0
+            fill_time: 0,
         };
 
         if let Some(val) = book.price_map.get(&price) {
@@ -214,7 +214,7 @@ impl OrderBook {
         price_level: &mut VecDeque<Order>,
         incoming_order_qty: &mut u32,
         _order_loc: &mut HashMap<u64, (Side, usize, u32)>,
-        incoming_order_time: u64
+        incoming_order_time: u64,
     ) -> (Vec<u64>, Vec<u32>) {
         let mut done_qty = Vec::new();
         let mut ids = Vec::new();
@@ -227,8 +227,13 @@ impl OrderBook {
                     Ordering::Less => {
                         if o.is_synth {
                             if o.qty > 0 {
-                                let fill_time = ((incoming_order_time - o.send_time) as f32) / (1_000_000_000 as f32);
-                                dbgp!("[ FILL SYNTH ] Incomplete {} fill_time {}", o.price, fill_time);
+                                let fill_time = ((incoming_order_time - o.send_time) as f32)
+                                    / (1_000_000_000 as f32);
+                                dbgp!(
+                                    "[ FILL SYNTH ] Incomplete {} fill_time {}",
+                                    o.price,
+                                    fill_time
+                                );
                                 o.qty = 0;
                                 // todo log fill time = ((incoming_order_time - o.send_time) as f32) / (1000000000 as f32);
                             }
@@ -241,8 +246,13 @@ impl OrderBook {
                     }
                     Ordering::Equal => {
                         if o.is_synth {
-                            let fill_time = ((incoming_order_time - o.send_time) as f32) / (1_000_000_000 as f32);
-                            dbgp!("[ FILL SYNTH ] Complete {} fill_time {}", o.price, fill_time);
+                            let fill_time = ((incoming_order_time - o.send_time) as f32)
+                                / (1_000_000_000 as f32);
+                            dbgp!(
+                                "[ FILL SYNTH ] Complete {} fill_time {}",
+                                o.price,
+                                fill_time
+                            );
                             o.qty = 0;
                             // todo log fill time = ((incoming_order_time - o.send_time) as f32) / (1000000000 as f32);
                         } else {
@@ -311,7 +321,7 @@ impl OrderBook {
                             &mut price_levels[curr_level],
                             &mut remaining_order_qty,
                             &mut self.order_loc,
-                            order.send_time
+                            order.send_time,
                         );
                         for i in 0..id_vec.len() {
                             dbgp!("[ INFO ]    Matched {}@{} id={}", qty_vec[i], x, id_vec[i]);
@@ -338,7 +348,7 @@ impl OrderBook {
                             &mut price_levels[curr_level],
                             &mut remaining_order_qty,
                             &mut self.order_loc,
-                            order.send_time
+                            order.send_time,
                         );
                         for i in 0..id_vec.len() {
                             dbgp!("[ INFO ]    Matched {}@{} {}", qty_vec[i], x, id_vec[i]);

@@ -59,7 +59,7 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                 qty,
                 is_synth: false,
                 send_time: 0,
-                fill_time: 0
+                fill_time: 0,
             };
             Ok(order)
         } else {
@@ -95,7 +95,7 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                 qty,
                 is_synth: false,
                 send_time: 0,
-                fill_time: 0
+                fill_time: 0,
             };
             Ok(order)
         } else {
@@ -134,7 +134,7 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                             qty: qty - trader_filled_qty,
                             is_synth: false,
                             send_time: 0,
-                            fill_time: 0
+                            fill_time: 0,
                         });
                         // dbgp!("AFTER FILLED: {:?}", self.active_buy_order);
                     }
@@ -164,7 +164,7 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                         qty: qty - trader_filled_qty,
                         is_synth: false,
                         send_time: 0,
-                        fill_time: 0
+                        fill_time: 0,
                     });
                     // dbgp!("AFTER FILLED: {:?}", self.active_sell_order);
                 }
@@ -228,7 +228,8 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                     id: _id,
                     side: Side::Bid,
                     price,
-                    qty: _qty, ..
+                    qty: _qty,
+                    ..
                 }) if price == buy_order.price => {
                     dbgp!("[ STRAT] Order found, passing");
                     dbgp!("[ STRAT] price = {}", price);
@@ -238,7 +239,8 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                     id: _id,
                     side: Side::Bid,
                     price: _price,
-                    qty: _qty, ..
+                    qty: _qty,
+                    ..
                 }) => {
                     dbgp!("[ STRAT] Order found, need amend");
                     dbgp!(
@@ -255,7 +257,8 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                     id: _id,
                     side: Side::Ask,
                     price: _price,
-                    qty: _qty, ..
+                    qty: _qty,
+                    ..
                 }) => unreachable!(),
             }
         } else {
@@ -340,11 +343,12 @@ impl<'a, 'b> OrderManagementSystem<'b> {
         &'a self,
         ref_price: Option<f32>,
         id: u64,
-        send_time : u64,
-        ind : u8
+        send_time: u64,
+        ind: u8,
     ) -> Result<Order, &'b str> {
         let side = Side::Bid;
-        let price = (ref_price.ok_or("Missing Ref Price")? * (1.0 + (ind as f32 )* self.strategy.buy_criterion))
+        let price = (ref_price.ok_or("Missing Ref Price")?
+            * (1.0 + (ind as f32) * self.strategy.buy_criterion))
             .floor() as u32;
         let free_qty = if self.strategy.buy_position_limit - self.strategy.master_position > 0 {
             (self.strategy.buy_position_limit - self.strategy.master_position) as u32
@@ -364,9 +368,9 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                 side,
                 price,
                 qty,
-                is_synth : true,
+                is_synth: true,
                 send_time,
-                fill_time : 0
+                fill_time: 0,
             };
             Ok(order)
         } else {
@@ -378,11 +382,12 @@ impl<'a, 'b> OrderManagementSystem<'b> {
         &'a self,
         ref_price: Option<f32>,
         id: u64,
-        send_time : u64,
-        ind : u8
+        send_time: u64,
+        ind: u8,
     ) -> Result<Order, &'b str> {
         let side = Side::Ask;
-        let price = (ref_price.ok_or("Missing Ref Price")? * (1.0 + (ind as f32)  * self.strategy.sell_criterion))
+        let price = (ref_price.ok_or("Missing Ref Price")?
+            * (1.0 + (ind as f32) * self.strategy.sell_criterion))
             .ceil() as u32;
         let free_qty = if -self.strategy.sell_position_limit + self.strategy.master_position > 0 {
             (-self.strategy.sell_position_limit + self.strategy.master_position) as u32
@@ -402,9 +407,9 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                 side,
                 price,
                 qty,
-                is_synth : true,
+                is_synth: true,
                 send_time,
-                fill_time : 0
+                fill_time: 0,
             };
             Ok(order)
         } else {
@@ -412,15 +417,20 @@ impl<'a, 'b> OrderManagementSystem<'b> {
         }
     }
 
-    fn send_buy_order_fp(&mut self, ob: &mut OrderBook, order : Order) {
+    fn send_buy_order_fp(&mut self, ob: &mut OrderBook, order: Order) {
         ob.add_limit_order(order);
     }
-    fn send_sell_order_fp(&mut self, ob: &mut OrderBook, order : Order) {
+    fn send_sell_order_fp(&mut self, ob: &mut OrderBook, order: Order) {
         ob.add_limit_order(order);
     }
 
-
-    pub fn send_orders_fp(&mut self, ob: &mut OrderBook, m: Option<f32>, send_time : u64, ladder_num: u8) {
+    pub fn send_orders_fp(
+        &mut self,
+        ob: &mut OrderBook,
+        m: Option<f32>,
+        send_time: u64,
+        ladder_num: u8,
+    ) {
         let trader_buy_id = 333;
         let trader_sell_id = 777;
 
@@ -431,6 +441,5 @@ impl<'a, 'b> OrderManagementSystem<'b> {
             self.send_buy_order_fp(ob, buy_order.unwrap());
             self.send_sell_order_fp(ob, sell_order.unwrap());
         }
-
     }
 }

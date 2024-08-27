@@ -15,7 +15,7 @@ fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook 
             id: order_id,
             is_synth: false,
             send_time: 0,
-            fill_time: 0
+            fill_time: 0,
         });
 
         ob.add_limit_order(Order {
@@ -25,7 +25,7 @@ fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook 
             id: order_id,
             is_synth: false,
             send_time: 0,
-            fill_time: 0
+            fill_time: 0,
         });
         if order_id > 100 {
             let _ = ob.cancel_order(order_id - 100);

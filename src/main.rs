@@ -54,7 +54,7 @@ fn main() {
         id: trader_order_id,
         is_synth: false,
         send_time: 0,
-        fill_time: 0
+        fill_time: 0,
     });
 
     let snap = Snap {
@@ -86,7 +86,7 @@ fn main() {
         id: 1010,
         is_synth: false,
         send_time: 0,
-        fill_time: 0
+        fill_time: 0,
     });
     dbgp!("{:#?}", exec_report);
 

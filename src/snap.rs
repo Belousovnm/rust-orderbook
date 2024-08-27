@@ -1,11 +1,11 @@
 #![allow(clippy::too_many_arguments)]
 
-use std::collections::VecDeque;
 use crate::{
     dbgp,
     event::LimitOrder,
-    orderbook::{Order, OrderBook, Side, HalfBook},
+    orderbook::{HalfBook, Order, OrderBook, Side},
 };
+use std::collections::VecDeque;
 
 #[derive(Debug, Default)]
 #[allow(dead_code)]
@@ -47,7 +47,7 @@ fn place_order_from_snap(snap: Snap, ob: &mut OrderBook) {
             qty: level.qty,
             is_synth: false,
             send_time: 0,
-            fill_time: 0
+            fill_time: 0,
         });
     }
 }
@@ -83,7 +83,7 @@ fn place_head_tail(
             qty: qty_head,
             is_synth: false,
             send_time: 0,
-            fill_time: 0
+            fill_time: 0,
         });
     }
     if let Some(best_offer_price) = ob.best_offer_price {
@@ -95,7 +95,7 @@ fn place_head_tail(
                 qty,
                 is_synth: false,
                 send_time: 0,
-                fill_time: 0
+                fill_time: 0,
             });
         }
     } else if side == Side::Bid {
@@ -106,7 +106,7 @@ fn place_head_tail(
             qty,
             is_synth: false,
             send_time: 0,
-            fill_time: 0
+            fill_time: 0,
         });
     }
     if let Some(best_bid_price) = ob.best_bid_price {
@@ -129,7 +129,7 @@ fn place_head_tail(
             qty,
             is_synth: false,
             send_time: 0,
-            fill_time: 0
+            fill_time: 0,
         });
     }
     if qty_tail > 0 {
@@ -140,13 +140,12 @@ fn place_head_tail(
             qty: qty_tail,
             is_synth: false,
             send_time: 0,
-            fill_time: 0
+            fill_time: 0,
         });
     }
 }
 
-fn process_stale_level(level : &VecDeque<Order>)
-{
+fn process_stale_level(level: &VecDeque<Order>) {
     for o in level {
         if o.is_synth {
             // mark order as not done
@@ -154,7 +153,7 @@ fn process_stale_level(level : &VecDeque<Order>)
     }
 }
 
-fn is_stale_level(level : &VecDeque<Order>, side: Side, boundary_price : u32) -> bool {
+fn is_stale_level(level: &VecDeque<Order>, side: Side, boundary_price: u32) -> bool {
     let cur_price = level.front().map_or(u32::MAX, |order| order.price);
 
     if side == Side::Bid && cur_price >= boundary_price {
@@ -168,23 +167,22 @@ fn is_stale_level(level : &VecDeque<Order>, side: Side, boundary_price : u32) ->
     false
 }
 
-fn filter_stale_synth_orders(level: &VecDeque<Order>, cur_epoch : u64) -> VecDeque<Order> {
-
+fn filter_stale_synth_orders(level: &VecDeque<Order>, cur_epoch: u64) -> VecDeque<Order> {
     let filtered_result: VecDeque<Order> = level
         .iter()
-        .filter(|order| (!order.is_synth || cur_epoch.abs_diff(order.send_time) < 10_000_000_000 && order.qty > 0))
+        .filter(|order| {
+            !order.is_synth || cur_epoch.abs_diff(order.send_time) < 10_000_000_000 && order.qty > 0
+        })
         .copied() // Clone the orders to create a new VecDeque
         .collect();
 
     filtered_result
 }
 
-fn merge_level_with_qty(level: &mut VecDeque<Order>, qty : u32, cur_epoch : u64) -> VecDeque<Order> {
-
+fn merge_level_with_qty(level: &mut VecDeque<Order>, qty: u32, cur_epoch: u64) -> VecDeque<Order> {
     let mut need_retain = true;
     let mut tot_qty = 0;
     for o in &mut *level {
-
         if !o.is_synth {
             if need_retain {
                 tot_qty += o.qty;
@@ -200,42 +198,53 @@ fn merge_level_with_qty(level: &mut VecDeque<Order>, qty : u32, cur_epoch : u64)
 
     let filtered_result: VecDeque<Order> = level
         .iter()
-        .filter(|order| ((order.is_synth && cur_epoch.abs_diff(order.send_time) < 10_000_000_000 && order.qty > 0) || (!order.is_synth && order.fill_time != u64::MAX)))
+        .filter(|order| {
+            (order.is_synth
+                && cur_epoch.abs_diff(order.send_time) < 10_000_000_000
+                && order.qty > 0)
+                || (!order.is_synth && order.fill_time != u64::MAX)
+        })
         .copied() // Clone the orders to create a new VecDeque
         .collect();
 
     filtered_result
 }
 
-fn merge_halfbook_with_snap(halfbook: &mut HalfBook, snap: &Snap, side:Side, boundary_price : u32) -> HalfBook {
-
+fn merge_halfbook_with_snap(
+    halfbook: &mut HalfBook,
+    snap: &Snap,
+    side: Side,
+    boundary_price: u32,
+) -> HalfBook {
     let mut result_ob = HalfBook::new(side);
-    let mut i_book:usize = 0;  // Pointer for price_levels
-    let mut i_snap:usize = 0;  // Pointer for snap
-    let mut i_result:usize = 0; // pointer to result
+    let mut i_book: usize = 0; // Pointer for price_levels
+    let mut i_snap: usize = 0; // Pointer for snap
+    let mut i_result: usize = 0; // pointer to result
 
     let snap_len = snap.vec.len();
     let book_len = halfbook.price_levels.len();
 
     while i_book < book_len && i_snap < snap_len {
-
         let level = &halfbook.price_levels[i_book];
 
-        if is_stale_level(level, side, boundary_price)
-        {
+        if is_stale_level(level, side, boundary_price) {
             process_stale_level(level);
             i_book += 1;
             continue;
         }
 
-        let cur_book_price = halfbook.price_levels[i_book].front().map_or(u32::MAX, |order| order.price);
+        let cur_book_price = halfbook.price_levels[i_book]
+            .front()
+            .map_or(u32::MAX, |order| order.price);
         let cur_snap_price = snap.vec[i_snap].price;
 
-        let snap_ahead = ((side == Side::Ask) && (cur_book_price < cur_snap_price)) || ((side == Side::Bid) && (cur_book_price > cur_snap_price));
+        let snap_ahead = ((side == Side::Ask) && (cur_book_price < cur_snap_price))
+            || ((side == Side::Bid) && (cur_book_price > cur_snap_price));
 
         if snap_ahead {
             // Copy the whole level into the new order book
-            let filtered_level = filter_stale_synth_orders(&halfbook.price_levels[i_book], snap.exch_epoch);
+            let filtered_level =
+                filter_stale_synth_orders(&halfbook.price_levels[i_book], snap.exch_epoch);
             let l = filtered_level.len();
 
             if l > 0 {
@@ -246,7 +255,11 @@ fn merge_halfbook_with_snap(halfbook: &mut HalfBook, snap: &Snap, side:Side, bou
             i_book += 1;
         } else if cur_book_price == cur_snap_price {
             // Merge the level with Snap's qty
-            let merged_level = merge_level_with_qty(& mut halfbook.price_levels[i_book], snap.vec[i_snap].qty, snap.exch_epoch);
+            let merged_level = merge_level_with_qty(
+                &mut halfbook.price_levels[i_book],
+                snap.vec[i_snap].qty,
+                snap.exch_epoch,
+            );
             result_ob.price_levels.push(merged_level);
             result_ob.price_map.insert(cur_book_price, i_result);
             i_book += 1;
@@ -278,16 +291,17 @@ fn merge_halfbook_with_snap(halfbook: &mut HalfBook, snap: &Snap, side:Side, bou
 
     // If there are remaining levels in a book, copy them to the new order book
     while i_book < book_len {
-
         let level = &halfbook.price_levels[i_book];
 
-        if is_stale_level(level, side, boundary_price)
-        {
+        if is_stale_level(level, side, boundary_price) {
             process_stale_level(level);
             break;
         }
-        let cur_book_price = halfbook.price_levels[i_book].front().map_or(u32::MAX, |order| order.price);
-        let filtered_level = filter_stale_synth_orders(&halfbook.price_levels[i_book], snap.exch_epoch);
+        let cur_book_price = halfbook.price_levels[i_book]
+            .front()
+            .map_or(u32::MAX, |order| order.price);
+        let filtered_level =
+            filter_stale_synth_orders(&halfbook.price_levels[i_book], snap.exch_epoch);
 
         let l = filtered_level.len();
 
@@ -325,8 +339,7 @@ fn merge_halfbook_with_snap(halfbook: &mut HalfBook, snap: &Snap, side:Side, bou
     result_ob
 }
 
-fn next_snap_fp(snap: &Snap, ob : & mut OrderBook) -> OrderBook {
-
+fn next_snap_fp(snap: &Snap, ob: &mut OrderBook) -> OrderBook {
     let mut ob_res = OrderBook::new();
 
     let mid = snap.vec.len() / 2; // Calculate the midpoint
@@ -342,12 +355,18 @@ fn next_snap_fp(snap: &Snap, ob : & mut OrderBook) -> OrderBook {
         vec: ask_orders.to_vec(), // Convert the slice back to Vec
     };
 
-    let ask_book = merge_halfbook_with_snap(& mut ob.ask_book, &ask_snap, Side::Ask, bid_orders[0].price);
-    let bid_book = merge_halfbook_with_snap(& mut ob.bid_book, &bid_snap, Side::Bid, ask_orders[0].price);
+    let ask_book =
+        merge_halfbook_with_snap(&mut ob.ask_book, &ask_snap, Side::Ask, bid_orders[0].price);
+    let bid_book =
+        merge_halfbook_with_snap(&mut ob.bid_book, &bid_snap, Side::Bid, ask_orders[0].price);
 
-    let best_ask_price = ask_book.price_levels[0].front().map_or(u32::MAX, |order| order.price);
+    let best_ask_price = ask_book.price_levels[0]
+        .front()
+        .map_or(u32::MAX, |order| order.price);
     //let best_bid_price = bid_book.price_levels[0].front().map_or(u64::MAX, |order| order.price);
-    let best_bid_price = bid_book.price_levels[0].front().map_or(u32::MAX, |order| order.price);
+    let best_bid_price = bid_book.price_levels[0]
+        .front()
+        .map_or(u32::MAX, |order| order.price);
 
     ob_res.best_bid_price = Some(best_bid_price);
     ob_res.best_offer_price = Some(best_ask_price);
@@ -447,7 +466,7 @@ impl OrderBook {
 
     /// # Safety
     ///
-    pub fn process_fp(& mut self, snap: &Snap) -> Self {
+    pub fn process_fp(&mut self, snap: &Snap) -> Self {
         dbgp!("snap::order_book::process {:?}", 100);
         next_snap_fp(snap, self)
     }

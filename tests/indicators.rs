@@ -15,7 +15,7 @@ fn full_ob(bid: u32, ask: u32) -> OrderBook {
         qty: 10,
         is_synth: false,
         send_time: 0,
-        fill_time: 0
+        fill_time: 0,
     };
     ob.add_limit_order(buy_order);
     let sell_order = Order {
@@ -25,7 +25,7 @@ fn full_ob(bid: u32, ask: u32) -> OrderBook {
         qty: 10,
         is_synth: false,
         send_time: 0,
-        fill_time: 0
+        fill_time: 0,
     };
     ob.add_limit_order(sell_order);
     ob

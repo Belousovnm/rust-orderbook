@@ -66,7 +66,7 @@ fn exec_report_test() {
         id: trader_order_id,
         is_synth: false,
         send_time: 0,
-        fill_time: 0
+        fill_time: 0,
     });
 
     let snap = Snap {
@@ -98,7 +98,7 @@ fn exec_report_test() {
         id: 1010,
         is_synth: false,
         send_time: 0,
-        fill_time: 0
+        fill_time: 0,
     });
     let filled_orders = vec![(222, 100, 99), (333, 10, 99), (444, 25, 99)];
     assert_eq!(exec_report.filled_orders, filled_orders);

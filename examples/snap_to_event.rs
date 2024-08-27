@@ -1,8 +1,8 @@
-use std::env;
 use orderbook::{
-    account::TradingAccount, management::OrderManagementSystem, snap_to_event, snap_to_event_fp, Indicator,
-    OrderBook, Strategy, StrategyName,
+    account::TradingAccount, management::OrderManagementSystem, snap_to_event, snap_to_event_fp,
+    Indicator, OrderBook, Strategy, StrategyName,
 };
+use std::env;
 
 fn main() {
     let ob_path = "data/ob.csv";
@@ -32,7 +32,6 @@ fn main() {
     let money_account = TradingAccount::new(initial_balance);
     let midprice = Indicator::Midprice;
     let mut oms = OrderManagementSystem::new(&mut strat, money_account);
-
 
     if is_fp {
         snap_to_event_fp(midprice, &mut oms, &mut ob, ob_path, orders_path);

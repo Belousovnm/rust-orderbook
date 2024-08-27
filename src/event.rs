@@ -473,7 +473,7 @@ impl<'de> Deserialize<'de> for Order {
                     qty: qty.unwrap(),
                     is_synth: false,
                     send_time: 0,
-                    fill_time: 0
+                    fill_time: 0,
                 })
             }
         }
