@@ -1,5 +1,9 @@
 // use std::time::SystemTime;
-// #![warn(clippy::pedantic)]
+#![warn(clippy::pedantic)]
+#![warn(clippy::nursery)]
+#![allow(clippy::similar_names)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::cast_precision_loss)]
 mod event;
 mod orderbook;
 mod snap;
@@ -73,7 +77,7 @@ fn main() {
         qty: 135,
         id: 1010,
     });
-    dbgp!("{:#?}", _exec_report);
+    // dbgp!("{:#?}", exec_report);
 
     dbgp!("{:#?}", ob);
     let _ = ob.get_bbo();

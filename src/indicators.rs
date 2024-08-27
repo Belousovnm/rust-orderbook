@@ -18,6 +18,6 @@ impl Indicator {
     }
 }
 
-pub fn midprice(bid: u64, ask: u64) -> f32 {
+pub fn midprice(bid: u32, ask: u32) -> f32 {
     (bid + ask) as f32 / 2.0
 }

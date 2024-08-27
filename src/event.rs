@@ -11,8 +11,8 @@ use std::fmt;
 #[derive(Debug, Clone, Copy, Serialize, Default)]
 pub struct LimitOrder {
     pub side: Side,
-    pub price: u64,
-    pub qty: u64,
+    pub price: u32,
+    pub qty: u32,
 }
 
 impl<'de> Deserialize<'de> for Snap {
@@ -34,46 +34,46 @@ impl<'de> Deserialize<'de> for Snap {
                 A: MapAccess<'de>,
             {
                 let mut exch_epoch: Option<u64> = None;
-                let mut bid_1_price: Option<u64> = None;
-                let mut bid_2_price: Option<u64> = None;
-                let mut bid_3_price: Option<u64> = None;
-                let mut bid_4_price: Option<u64> = None;
-                let mut bid_5_price: Option<u64> = None;
-                let mut bid_6_price: Option<u64> = None;
-                let mut bid_7_price: Option<u64> = None;
-                let mut bid_8_price: Option<u64> = None;
-                let mut bid_9_price: Option<u64> = None;
-                let mut bid_10_price: Option<u64> = None;
-                let mut ask_1_price: Option<u64> = None;
-                let mut ask_2_price: Option<u64> = None;
-                let mut ask_3_price: Option<u64> = None;
-                let mut ask_4_price: Option<u64> = None;
-                let mut ask_5_price: Option<u64> = None;
-                let mut ask_6_price: Option<u64> = None;
-                let mut ask_7_price: Option<u64> = None;
-                let mut ask_8_price: Option<u64> = None;
-                let mut ask_9_price: Option<u64> = None;
-                let mut ask_10_price: Option<u64> = None;
-                let mut bid_1_qty: Option<u64> = None;
-                let mut bid_2_qty: Option<u64> = None;
-                let mut bid_3_qty: Option<u64> = None;
-                let mut bid_4_qty: Option<u64> = None;
-                let mut bid_5_qty: Option<u64> = None;
-                let mut bid_6_qty: Option<u64> = None;
-                let mut bid_7_qty: Option<u64> = None;
-                let mut bid_8_qty: Option<u64> = None;
-                let mut bid_9_qty: Option<u64> = None;
-                let mut bid_10_qty: Option<u64> = None;
-                let mut ask_1_qty: Option<u64> = None;
-                let mut ask_2_qty: Option<u64> = None;
-                let mut ask_3_qty: Option<u64> = None;
-                let mut ask_4_qty: Option<u64> = None;
-                let mut ask_5_qty: Option<u64> = None;
-                let mut ask_6_qty: Option<u64> = None;
-                let mut ask_7_qty: Option<u64> = None;
-                let mut ask_8_qty: Option<u64> = None;
-                let mut ask_9_qty: Option<u64> = None;
-                let mut ask_10_qty: Option<u64> = None;
+                let mut bid_1_price: Option<u32> = None;
+                let mut bid_2_price: Option<u32> = None;
+                let mut bid_3_price: Option<u32> = None;
+                let mut bid_4_price: Option<u32> = None;
+                let mut bid_5_price: Option<u32> = None;
+                let mut bid_6_price: Option<u32> = None;
+                let mut bid_7_price: Option<u32> = None;
+                let mut bid_8_price: Option<u32> = None;
+                let mut bid_9_price: Option<u32> = None;
+                let mut bid_10_price: Option<u32> = None;
+                let mut ask_1_price: Option<u32> = None;
+                let mut ask_2_price: Option<u32> = None;
+                let mut ask_3_price: Option<u32> = None;
+                let mut ask_4_price: Option<u32> = None;
+                let mut ask_5_price: Option<u32> = None;
+                let mut ask_6_price: Option<u32> = None;
+                let mut ask_7_price: Option<u32> = None;
+                let mut ask_8_price: Option<u32> = None;
+                let mut ask_9_price: Option<u32> = None;
+                let mut ask_10_price: Option<u32> = None;
+                let mut bid_1_qty: Option<u32> = None;
+                let mut bid_2_qty: Option<u32> = None;
+                let mut bid_3_qty: Option<u32> = None;
+                let mut bid_4_qty: Option<u32> = None;
+                let mut bid_5_qty: Option<u32> = None;
+                let mut bid_6_qty: Option<u32> = None;
+                let mut bid_7_qty: Option<u32> = None;
+                let mut bid_8_qty: Option<u32> = None;
+                let mut bid_9_qty: Option<u32> = None;
+                let mut bid_10_qty: Option<u32> = None;
+                let mut ask_1_qty: Option<u32> = None;
+                let mut ask_2_qty: Option<u32> = None;
+                let mut ask_3_qty: Option<u32> = None;
+                let mut ask_4_qty: Option<u32> = None;
+                let mut ask_5_qty: Option<u32> = None;
+                let mut ask_6_qty: Option<u32> = None;
+                let mut ask_7_qty: Option<u32> = None;
+                let mut ask_8_qty: Option<u32> = None;
+                let mut ask_9_qty: Option<u32> = None;
+                let mut ask_10_qty: Option<u32> = None;
 
                 while let Some(key) = map.next_key()? {
                     match key {
@@ -424,8 +424,8 @@ impl<'de> Deserialize<'de> for Order {
             {
                 let mut exch_epoch: Option<u64> = None;
                 let mut side: Option<u8> = None;
-                let mut price: Option<u64> = None;
-                let mut qty: Option<u64> = None;
+                let mut price: Option<u32> = None;
+                let mut qty: Option<u32> = None;
 
                 while let Some(key) = map.next_key()? {
                     match key {
