@@ -11,7 +11,7 @@ fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook 
         ob.add_limit_order(Order {
             side: Side::Bid,
             price: rng.gen_range(90..102),
-            qty: rng.gen_range(10..=50),
+            qty: rng.gen_range(1..=50),
             id: order_id,
         });
 
@@ -21,9 +21,6 @@ fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook 
             qty: rng.gen_range(1..=50),
             id: order_id,
         });
-        if order_id > 100 {
-            let _ = ob.cancel_order(order_id - 100);
-        };
     }
 
     ob
@@ -33,13 +30,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut rng = rand::thread_rng();
     let mut group = c.benchmark_group("order-benchmark");
     group.sample_size(10);
-    group.measurement_time(Duration::new(5, 0));
-    group.bench_function("Match orders", |b| b.iter(|| run_orders(100_000, &mut rng)));
-    /*
-    group.bench_function("match 10000 orders on orderbook with 100k orders", |b| {
-        b.iter(|| match_orders(&mut ob, &mut rng, normal))
+    group.measurement_time(Duration::new(10, 0));
+    group.bench_function("Match orders", |b| {
+        b.iter(|| run_orders(1_000_000, &mut rng))
     });
-    */
     group.finish();
 }
 
