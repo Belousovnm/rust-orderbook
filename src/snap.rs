@@ -1,9 +1,12 @@
 #![allow(clippy::too_many_arguments)]
+
 use crate::{
     dbgp,
+    //management::OrderManagementSystem,
     event::LimitOrder,
-    orderbook::{Order, OrderBook, Side},
+    orderbook::{Order, OrderBook, Side, Offset}
 };
+
 
 #[derive(Debug, Default)]
 #[allow(dead_code)]
@@ -33,17 +36,19 @@ impl IntoIterator for Snap {
     }
 }
 
-type Offset = (Side, u32, u32, u32, u32, u64);
+//type Offset = (Side, u32, u32, u32, u32, u64, u64);
 
 fn place_order_from_snap(snap: Snap, ob: &mut OrderBook) {
+    let epoch= snap.exch_epoch;
     for (id, level) in snap.into_iter().enumerate() {
         let _ = ob.add_limit_order(Order {
-            id: u64::try_from(id).expect("ID CONVERTION FAILED"),
+            id: u64::try_from(id).expect("ID CONVERSION FAILED"),
             // id: id as u64,
             side: level.side,
             price: level.price,
             qty: level.qty,
-        });
+            ts_create: epoch,
+        }, epoch);
     }
 }
 
@@ -56,6 +61,7 @@ fn place_head_tail(
     id: u64,
     side: Side,
     price: u32,
+    ts_create: u64,
 ) {
     dbgp!("{} {} {} {:?} {}", qty_head, qty, qty_tail, side, price);
     let (qty_head, qty_tail) = if new_qty < qty_head + qty_tail {
@@ -76,7 +82,8 @@ fn place_head_tail(
             side,
             price,
             qty: qty_head,
-        });
+            ts_create: 0,
+        }, 0);
     }
     if let Some(best_offer_price) = ob.best_offer_price {
         if side == Side::Bid && price < best_offer_price {
@@ -85,7 +92,8 @@ fn place_head_tail(
                 side,
                 price,
                 qty,
-            });
+                ts_create,
+            }, 0);
         }
     } else if side == Side::Bid {
         let _ = ob.add_limit_order(Order {
@@ -93,7 +101,8 @@ fn place_head_tail(
             side,
             price,
             qty,
-        });
+            ts_create
+        }, 0);
     }
     if let Some(best_bid_price) = ob.best_bid_price {
         if side == Side::Ask && price > best_bid_price {
@@ -102,7 +111,8 @@ fn place_head_tail(
                 side,
                 price,
                 qty,
-            });
+                ts_create
+            }, 0);
         }
     } else if side == Side::Ask {
         let _ = ob.add_limit_order(Order {
@@ -110,7 +120,8 @@ fn place_head_tail(
             side,
             price,
             qty,
-        });
+            ts_create,
+        }, 0);
     }
     if qty_tail > 0 {
         let _ = ob.add_limit_order(Order {
@@ -118,7 +129,8 @@ fn place_head_tail(
             side,
             price,
             qty: qty_tail,
-        });
+            ts_create: 0
+        }, 0);
     }
 }
 
@@ -126,21 +138,26 @@ fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) 
     let mut ob = OrderBook::new();
     match (offsets.0.ok(), offsets.1.ok()) {
         (
-            Some((Side::Bid, price_bid, qty_head_bid, qty_bid, qty_tail_bid, id_bid)),
-            Some((Side::Ask, price_ask, qty_head_ask, qty_ask, qty_tail_ask, id_ask)),
+            Some((Side::Bid, price_bid, qty_head_bid, qty_bid, qty_tail_bid, id_bid, ts_create_bid)),
+            Some((Side::Ask, price_ask, qty_head_ask, qty_ask, qty_tail_ask, id_ask, ts_create_ask)),
         ) => {
             let mut filtered_snap = Snap::new();
             let mut new_qty_bid = 0;
             let mut new_qty_ask = 0;
+            let epoch = snap.exch_epoch;
+            let live_time_bid = epoch - ts_create_bid;
+            let live_time_ask = epoch - ts_create_ask;
             for level in snap {
-                if level.price == price_bid && level.side == Side::Bid {
+                if level.price == price_bid && level.side == Side::Bid && live_time_bid <= 10_000_000_000 {
                     new_qty_bid = level.qty;
-                } else if level.price == price_ask && level.side == Side::Ask {
+                } else if level.price == price_ask && level.side == Side::Ask && live_time_ask <= 10_000_000_000 {
                     new_qty_ask = level.qty;
                 } else {
                     filtered_snap.push(level);
                 }
             }
+
+
             place_order_from_snap(filtered_snap, &mut ob);
             place_head_tail(
                 &mut ob,
@@ -151,6 +168,7 @@ fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) 
                 id_bid,
                 Side::Bid,
                 price_bid,
+                ts_create_bid
             );
             place_head_tail(
                 &mut ob,
@@ -161,36 +179,45 @@ fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) 
                 id_ask,
                 Side::Ask,
                 price_ask,
+                ts_create_ask
             );
         }
-        (Some((side, bid_price, qty_head, qty, qty_tail, id)), None) => {
+        (Some((side, bid_price, qty_head, qty, qty_tail, id, ts_create_bid)), None) => {
             let mut filtered_snap = Snap::new();
             let mut new_qty = 0;
+            let epoch = snap.exch_epoch;
+            let live_time_bid = epoch - ts_create_bid;
+
             for level in snap {
-                if level.price == bid_price && level.side == Side::Bid {
+                if level.price == bid_price && level.side == Side::Bid && live_time_bid <= 10_000_000_000{
                     new_qty = level.qty;
                 } else {
                     filtered_snap.push(level);
                 }
             }
+
             place_order_from_snap(filtered_snap, &mut ob);
             place_head_tail(
-                &mut ob, qty_head, qty_tail, qty, new_qty, id, side, bid_price,
+                &mut ob, qty_head, qty_tail, qty, new_qty, id, side, bid_price, epoch,
             );
         }
-        (None, Some((side, ask_price, qty_head, qty, qty_tail, id))) => {
+        (None, Some((side, ask_price, qty_head, qty, qty_tail, id, ts_create_ask))) => {
             let mut filtered_snap = Snap::new();
             let mut new_qty = 0;
+            let epoch = snap.exch_epoch;
+            let live_time_ask = epoch - ts_create_ask;
+
             for level in snap {
-                if level.price == ask_price && level.side == Side::Ask {
+                if level.price == ask_price && level.side == Side::Ask && live_time_ask <= 10_000_000_000 {
                     new_qty = level.qty;
                 } else {
                     filtered_snap.push(level);
                 }
             }
+
             place_order_from_snap(filtered_snap, &mut ob);
             place_head_tail(
-                &mut ob, qty_head, qty_tail, qty, new_qty, id, side, ask_price,
+                &mut ob, qty_head, qty_tail, qty, new_qty, id, side, ask_price, epoch
             );
         }
         (None, None) => {
@@ -206,7 +233,7 @@ impl OrderBook {
         let buy_offset = self.get_offset(ids.0);
         let sell_offset = self.get_offset(ids.1);
         dbgp!("OFFSET {:?}", (buy_offset, sell_offset));
-        next_snap(snap, (buy_offset, sell_offset))
+        next_snap(snap,  (buy_offset, sell_offset))
     }
 }
 

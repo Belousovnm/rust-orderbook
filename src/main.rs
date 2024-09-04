@@ -8,6 +8,7 @@ mod event;
 mod orderbook;
 mod snap;
 mod utils;
+
 use event::LimitOrder;
 use orderbook::{Order, OrderBook, Side};
 use snap::Snap;
@@ -47,7 +48,8 @@ fn main() {
         price: 99,
         qty: 10,
         id: trader_order_id,
-    });
+        ts_create: 0
+    }, 0);
 
     let snap = Snap {
         exch_epoch: 0,
@@ -76,7 +78,8 @@ fn main() {
         price: 99,
         qty: 135,
         id: 1010,
-    });
+        ts_create: 0
+    }, 0);
     // dbgp!("{:#?}", exec_report);
 
     dbgp!("{:#?}", ob);

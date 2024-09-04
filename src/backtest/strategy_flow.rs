@@ -1,4 +1,5 @@
-use crate::{dbgp, management::OrderManagementSystem, Indicator, Order, OrderBook, Snap};
+use std::collections::HashMap;
+use crate::{dbgp, management::OrderManagementSystem, Indicator, Order, OrderBook, Snap, Side};
 use readable::num::Unsigned;
 use std::fmt;
 
@@ -8,6 +9,8 @@ pub struct StrategyMetrics {
     pub pnl_bps: f32,
     pub volume: u32,
     pub trade_count: u32,
+    pub fill_times_bid: HashMap<u64, u64>,
+    pub fill_times_ask: HashMap<u64, u64>,
 }
 
 impl fmt::Display for StrategyMetrics {
@@ -28,7 +31,7 @@ pub fn snap_to_event(
     oms: &mut OrderManagementSystem,
     ob: &mut OrderBook,
     ob_path: &str,
-    orders_path: &str,
+    orders_path: &str
 ) -> StrategyMetrics {
     let mut snap_reader = csv::Reader::from_path(ob_path).unwrap();
     let mut trade_reader = csv::Reader::from_path(orders_path).unwrap();
@@ -40,6 +43,10 @@ pub fn snap_to_event(
     let mut next_order = Order::default();
     let mut trading_volume: u32 = 0;
     let mut trade_count: u32 = 0;
+
+    let mut  fill_times_bid: HashMap<u64, u64> = HashMap::new();
+    let mut  fill_times_ask: HashMap<u64, u64> = HashMap::new();
+
     dbgp!("Crafting Orderbook");
     // Load first snapshot
     if let Some(Ok(first_snap)) = srdr.next() {
@@ -64,7 +71,17 @@ pub fn snap_to_event(
             if next_order.id <= epoch.min(strategy_epoch) {
                 // Apply order
                 dbgp!("[ EPCH ] order {:?}", next_order.id);
-                let exec_report = ob.add_limit_order(next_order);
+                let exec_report = ob.add_limit_order(next_order, snap.exch_epoch);
+
+                if oms.is_fp_tracking {
+                    for o in &exec_report.filled_orders {
+                        if o.0 == trader_buy_id {
+                            fill_times_bid.insert(o.3, snap.exch_epoch - o.3);
+                        } else if o.0 == trader_sell_id {
+                            fill_times_ask.insert(o.3, snap.exch_epoch - o.3);
+                        }
+                    }
+                }
                 dbgp!("{:#?}", exec_report);
                 let prev_account_balance = oms.account.balance;
                 oms.update(exec_report, (trader_buy_id, trader_sell_id));
@@ -85,10 +102,36 @@ pub fn snap_to_event(
             } else if epoch < next_order.id.min(strategy_epoch) {
                 // Load next snap
                 dbgp!("[ EPCH ] snap {:?}", epoch);
+
+                if oms.is_fp_tracking {
+                    let buy_offset = ob.get_offset(trader_buy_id);
+                    let sell_offset = ob.get_offset(trader_sell_id);
+
+                    if let Ok((Side::Bid, _price_bid, _qty_head_bid, _qty_bid, _qty_tail_bid, _id_bid, ts_create_bid)) = buy_offset {
+                        let epoch = snap.exch_epoch;
+                        let live_time = epoch - ts_create_bid;
+
+                        if live_time > 10_000_000_000 {
+                            // log bid expiry
+                            oms.filled_times_bid.insert(ts_create_bid, 10_000_000_000);
+                        }
+                    }
+
+                    if let Ok((Side::Ask, _price_ask, _qty_head_ask, _qty_ask, _qty_tail_ask, _id_ask, ts_create_ask)) = sell_offset {
+                        let epoch = snap.exch_epoch;
+                        let live_time = epoch - ts_create_ask;
+
+                        if live_time > 10_000_000_000 {
+                            // log bid expiry
+                            oms.filled_times_ask.insert(ts_create_ask, 10_000_000_000);
+                        }
+                    }
+
+                }
                 *ob = ob.process(snap, (trader_buy_id, trader_sell_id));
                 // Trader's move
                 let m = midprice.evaluate(ob);
-                oms.send_orders(ob, m);
+                oms.send_orders(ob, m, epoch);
                 // dbgp!("{:?}", ob.get_order(trader_buy_id));
                 // dbgp!("{:?}", ob.get_order(trader_sell_id));
                 break;
@@ -110,6 +153,8 @@ pub fn snap_to_event(
         pnl_bps,
         volume: trading_volume,
         trade_count,
+        fill_times_bid,
+        fill_times_ask
     };
     println!("{}", metrics);
     metrics
