@@ -6,6 +6,15 @@
 // Store total qty on level
 // Add Strategy builder
 // Add typestate
+#![warn(clippy::pedantic)]
+#![warn(clippy::nursery)]
+#![allow(clippy::similar_names)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::must_use_candidate)]
+#![allow(clippy::used_underscore_binding)]
+#![allow(clippy::cast_possible_wrap)]
 
 pub mod account;
 pub mod backtest;

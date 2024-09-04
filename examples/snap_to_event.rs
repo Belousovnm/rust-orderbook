@@ -1,6 +1,9 @@
-use orderbook::backtest::snap_to_event;
-use orderbook::backtest::{Strategy, StrategyName};
-use orderbook::{account::TradingAccount, management::OrderManagementSystem, Indicator, OrderBook};
+use orderbook_lib::{
+    account::TradingAccount,
+    backtest::{snap_to_event, Strategy, StrategyName},
+    management::OrderManagementSystem,
+    Indicator, OrderBook,
+};
 
 fn main() {
     let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob_ALRS.2024-01-29.csv";
@@ -18,5 +21,5 @@ fn main() {
     let midprice = Indicator::Midprice;
     let mut oms = OrderManagementSystem::new(&mut strat, money_account);
 
-    snap_to_event(midprice, &mut oms, &mut ob, ob_path, orders_path);
+    snap_to_event(&midprice, &mut oms, &mut ob, ob_path, orders_path);
 }

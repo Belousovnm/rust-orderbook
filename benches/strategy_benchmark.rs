@@ -1,6 +1,6 @@
 #![feature(test)]
 extern crate test;
-use orderbook::Snap;
+use orderbook_lib::Snap;
 use std::hint::black_box;
 
 fn deserialize() -> Vec<Result<Snap, csv::Error>> {
@@ -20,6 +20,6 @@ mod tests {
 
     #[bench]
     fn deserialize_bench(b: &mut Bencher) {
-        b.iter(|| deserialize());
+        b.iter(deserialize);
     }
 }

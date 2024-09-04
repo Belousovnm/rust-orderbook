@@ -1,34 +1,24 @@
 use core::time::Duration;
 use criterion::{criterion_group, criterion_main, Criterion};
-use orderbook::{Order, OrderBook, Side};
+use orderbook_lib::{Order, OrderBook, Side};
 use rand::Rng;
 
 fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook {
     let mut ob = OrderBook::new();
-    let mut buy_order_id = 0;
-    let mut sell_order_id = 1;
-    for _ in 0..num_orders {
+    for i in 1..=num_orders {
         ob.add_limit_order(Order {
             side: Side::Bid,
-            price: rng.gen_range(90..105),
-            qty: rng.gen_range(10..=50),
-            id: buy_order_id,
+            price: rng.gen_range(95..102),
+            qty: rng.gen_range(1..=50),
+            id: 2 * i as u64,
         });
-        buy_order_id += 2;
 
         ob.add_limit_order(Order {
             side: Side::Ask,
-            price: rng.gen_range(95..110),
+            price: rng.gen_range(98..105),
             qty: rng.gen_range(1..=50),
-            id: sell_order_id,
+            id: (2 * i + 1) as u64,
         });
-        sell_order_id += 2;
-        if buy_order_id > 100 {
-            let _ = ob.cancel_order(buy_order_id - 100);
-        };
-        if sell_order_id > 100 {
-            let _ = ob.cancel_order(sell_order_id - 100);
-        };
     }
 
     ob

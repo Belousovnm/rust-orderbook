@@ -1,8 +1,10 @@
 //! Stategy calculates buy and sell criterions based on
 //! input indicators. Strategy does not rightaway send
 //! orders to the matchning engine, instead it communicates
-//! with OrderManagementSystem, whichs abstracts away Risk control
+//! with `OrderManagementSystem`, whichs abstracts away Risk control
 //! and queue optimization  
+
+// use std::collections::HashSet;
 
 pub enum StrategyName {
     TestStrategy,
@@ -21,7 +23,7 @@ pub struct Strategy {
 
 impl Strategy {
     pub fn new(name: StrategyName) -> Self {
-        Strategy {
+        Self {
             name,
             buy_criterion: f32::INFINITY,
             sell_criterion: -f32::INFINITY,
