@@ -32,11 +32,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     group.bench_function("Match orders", |b| {
         b.iter(|| run_orders(1_000_000, &mut rng))
     });
-    /*
-    group.bench_function("match 10000 orders on orderbook with 100k orders", |b| {
-        b.iter(|| match_orders(&mut ob, &mut rng, normal))
-    });
-    */
     group.finish();
 }
 
