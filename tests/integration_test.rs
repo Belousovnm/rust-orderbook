@@ -64,7 +64,8 @@ fn exec_report_test() {
         price: 99,
         qty: 10,
         id: trader_order_id,
-    });
+        ts_create: 0
+    }, 0);
 
     let snap = Snap {
         exch_epoch: 0,
@@ -93,7 +94,8 @@ fn exec_report_test() {
         price: 99,
         qty: 135,
         id: 1010,
-    });
-    let filled_orders = vec![(222, 100, 99), (333, 10, 99), (444, 25, 99)];
+        ts_create: 0
+    }, 0);
+    let filled_orders = vec![(222, 100, 99, 0), (333, 10, 99, 0), (444, 25, 99, 0)];
     assert_eq!(exec_report.filled_orders, filled_orders);
 }

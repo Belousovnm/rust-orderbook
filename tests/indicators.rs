@@ -13,15 +13,17 @@ fn full_ob(bid: u32, ask: u32) -> OrderBook {
         side: Side::Bid,
         price: bid,
         qty: 10,
+        ts_create: 0
     };
-    ob.add_limit_order(buy_order);
+    ob.add_limit_order(buy_order, 0);
     let sell_order = Order {
         id: 999,
         side: Side::Ask,
         price: ask,
         qty: 10,
+        ts_create: 0
     };
-    ob.add_limit_order(sell_order);
+    ob.add_limit_order(sell_order, 0);
     ob
 }
 
