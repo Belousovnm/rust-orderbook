@@ -8,23 +8,23 @@
 
 pub trait Strategy {
     fn get_master_position(&self) -> i32;
-    fn set_master_position(&mut self, position: i32);
+    fn increment_master_position(&mut self, incr: i32);
 }
 
 impl Strategy for TestStrategy {
     fn get_master_position(&self) -> i32 {
         self.master_position
     }
-    fn set_master_position(&mut self, position: i32) {
-        self.master_position = position;
+    fn increment_master_position(&mut self, incr: i32) {
+        self.master_position += incr;
     }
 }
 impl Strategy for FixPriceStrategy {
     fn get_master_position(&self) -> i32 {
         self.master_position
     }
-    fn set_master_position(&mut self, position: i32) {
-        self.master_position = position;
+    fn increment_master_position(&mut self, incr: i32) {
+        self.master_position += incr;
     }
 }
 
