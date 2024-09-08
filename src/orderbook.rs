@@ -1,4 +1,5 @@
 use crate::{
+    backtest::TestStrategy,
     dbgp,
     management::OrderManagementSystem,
     snap::{next_snap, Snap},
@@ -396,12 +397,38 @@ impl OrderBook {
         }
     }
 
+    pub fn get_order(&self, order_id: u64) -> Option<&Order> {
+        let (side, price_level, _) = self.order_loc.get(&order_id)?;
+        let book = match side {
+            Side::Bid => &self.bid_book,
+            Side::Ask => &self.ask_book,
+        };
+        // let currdeque = book.price_levels.get(*price_level).unwrap();
+        let currdeque = &book.price_levels[*price_level];
+        let mut order = currdeque.iter().filter(|o| o.id == order_id);
+        order.next()
+    }
+
+    /// # Errors
+    ///
+    /// Will return `Err` if `order_id` is not found in `OrderBook`
+    pub fn amend_limit_order(
+        &mut self,
+        order_id: u64,
+        new_order: Order,
+    ) -> Result<ExecutionReport, String> {
+        self.cancel_order(order_id)?;
+        Ok(self.add_limit_order(new_order))
+    }
+}
+
+impl OrderBook {
     /// # Errors
     ///
     /// Will return `Err` if `order_id` is not found in `OrderBook`
     pub fn get_offset(
         &self,
-        oms: &mut OrderManagementSystem,
+        oms: &mut OrderManagementSystem<TestStrategy>,
         side: Side,
     ) -> Result<(Side, u32, u32, u32, u32, u64), &str> {
         let order_id = oms.get_order_id(side).ok_or("No such order id")?;
@@ -439,32 +466,7 @@ impl OrderBook {
             Err("No such order id")
         }
     }
-
-    pub fn get_order(&self, order_id: u64) -> Option<&Order> {
-        let (side, price_level, _) = self.order_loc.get(&order_id)?;
-        let book = match side {
-            Side::Bid => &self.bid_book,
-            Side::Ask => &self.ask_book,
-        };
-        // let currdeque = book.price_levels.get(*price_level).unwrap();
-        let currdeque = &book.price_levels[*price_level];
-        let mut order = currdeque.iter().filter(|o| o.id == order_id);
-        order.next()
-    }
-
-    /// # Errors
-    ///
-    /// Will return `Err` if `order_id` is not found in `OrderBook`
-    pub fn amend_limit_order(
-        &mut self,
-        order_id: u64,
-        new_order: Order,
-    ) -> Result<ExecutionReport, String> {
-        self.cancel_order(order_id)?;
-        Ok(self.add_limit_order(new_order))
-    }
-
-    pub fn get_raw(&self, oms: &OrderManagementSystem) -> Self {
+    pub fn get_raw(&self, oms: &OrderManagementSystem<TestStrategy>) -> Self {
         let mut raw_ob = self.clone();
         if let Some(order) = oms.active_buy_order {
             let _ = raw_ob.cancel_order(order.id);
@@ -475,7 +477,7 @@ impl OrderBook {
         raw_ob
     }
 
-    pub fn process(&self, snap: Snap, oms: &mut OrderManagementSystem) -> Self {
+    pub fn process(&self, snap: Snap, oms: &mut OrderManagementSystem<TestStrategy>) -> Self {
         let buy_offset = self.get_offset(oms, Side::Bid);
         let sell_offset = self.get_offset(oms, Side::Ask);
         dbgp!("OFFSET {:?}", (buy_offset, sell_offset));
