@@ -43,7 +43,8 @@ impl<'a, S: Strategy> OrderManagementSystem<'a, S> {
                         trader_filled_qty,
                         trader_filled_price,
                     );
-                    self.strategy.set_master_position(trader_filled_qty as i32);
+                    self.strategy
+                        .increment_master_position(trader_filled_qty as i32);
                     self.account.balance -= (trader_filled_qty * trader_filled_price) as i32;
                     dbgp!("TRADER FILLED: {}", trader_filled_qty);
                     if let Some(active_buy) = self.active_buy_order {
@@ -77,7 +78,8 @@ impl<'a, S: Strategy> OrderManagementSystem<'a, S> {
                     trader_filled_qty,
                     trader_filled_price,
                 );
-                self.strategy.set_master_position(trader_filled_qty as i32);
+                self.strategy
+                    .increment_master_position(-(trader_filled_qty as i32));
                 self.account.balance += (trader_filled_qty * trader_filled_price) as i32;
                 dbgp!("TRADER FILLED: {}", trader_filled_qty);
                 if let Some(active_sell) = self.active_sell_order {
