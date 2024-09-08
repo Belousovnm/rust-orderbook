@@ -1,9 +1,7 @@
 mod common;
 use orderbook_lib::{
-    account::TradingAccount,
-    backtest::{Strategy, StrategyName},
-    management::OrderManagementSystem,
-    LimitOrder, Order, OrderBook, Side, Snap,
+    account::TradingAccount, backtest::TestStrategy, management::OrderManagementSystem, LimitOrder,
+    Order, OrderBook, Side, Snap,
 };
 use pretty_assertions::assert_eq;
 use rstest::{fixture, rstest};
@@ -29,7 +27,7 @@ fn deser_level(deser: Snap) {
 #[rstest]
 fn deser_to_ob(deser: Snap) {
     let mut ob = OrderBook::new();
-    let strat = &mut Strategy::new(StrategyName::TestStrategy);
+    let strat = &mut TestStrategy::new();
     let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
 
     let snap = deser;
@@ -41,7 +39,7 @@ fn deser_to_ob(deser: Snap) {
 fn exec_report_test() {
     let trader_order_id = 333;
     let mut ob = OrderBook::new();
-    let strat = &mut Strategy::new(StrategyName::TestStrategy);
+    let strat = &mut TestStrategy::new();
     let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
     let snap = Snap {
         exch_epoch: 0,

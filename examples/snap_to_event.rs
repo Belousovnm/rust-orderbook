@@ -1,6 +1,6 @@
 use orderbook_lib::{
     account::TradingAccount,
-    backtest::{snap_to_event, Strategy, StrategyName},
+    backtest::{snap_to_event, TestStrategy},
     management::OrderManagementSystem,
     Indicator, OrderBook,
 };
@@ -9,7 +9,7 @@ fn main() {
     let ob_path = "data/ob.csv";
     let orders_path = "data/orders.csv";
     let mut ob = OrderBook::new();
-    let mut strat = Strategy::new(StrategyName::TestStrategy);
+    let mut strat = TestStrategy::new();
     let initial_balance = 0;
     strat.buy_criterion = -0.0002;
     strat.sell_criterion = 0.0002;

@@ -2,6 +2,8 @@ use crate::{dbgp, management::OrderManagementSystem, Indicator, Order, OrderBook
 use readable::num::Unsigned;
 use std::fmt;
 
+use super::TestStrategy;
+
 #[derive(Debug, PartialEq)]
 pub struct StrategyMetrics {
     pub pnl_abs: f32,
@@ -28,7 +30,7 @@ impl fmt::Display for StrategyMetrics {
 /// Will panic if File IO fails
 pub fn snap_to_event(
     midprice: &Indicator,
-    oms: &mut OrderManagementSystem,
+    oms: &mut OrderManagementSystem<TestStrategy>,
     ob: &mut OrderBook,
     ob_path: &str,
     orders_path: &str,
@@ -89,8 +91,8 @@ pub fn snap_to_event(
                 *ob = ob.process(snap, oms);
                 // Trader's move
                 let m = midprice.evaluate(&ob.get_raw(oms));
-                trader_buy_id = 1000 * epoch + 333;
-                trader_sell_id = 1000 * epoch + 777;
+                trader_buy_id = 10 * epoch + 3;
+                trader_sell_id = 10 * epoch + 7;
                 oms.send_orders(ob, m, trader_buy_id, trader_sell_id);
                 // dbgp!("{:?}", ob.get_order(oms.active_buy_order));
                 // dbgp!("{:?}", ob.get_order(oms.active_sell_order));
