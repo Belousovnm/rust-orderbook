@@ -6,13 +6,29 @@
 
 // use std::collections::HashSet;
 
-pub enum StrategyName {
-    TestStrategy,
+pub trait Strategy {
+    fn get_master_position(&self) -> i32;
+    fn set_master_position(&mut self, position: i32);
 }
 
-#[allow(dead_code)]
-pub struct Strategy {
-    name: StrategyName,
+impl Strategy for TestStrategy {
+    fn get_master_position(&self) -> i32 {
+        self.master_position
+    }
+    fn set_master_position(&mut self, position: i32) {
+        self.master_position = position;
+    }
+}
+impl Strategy for FixPriceStrategy {
+    fn get_master_position(&self) -> i32 {
+        self.master_position
+    }
+    fn set_master_position(&mut self, position: i32) {
+        self.master_position = position;
+    }
+}
+
+pub struct TestStrategy {
     pub buy_criterion: f32,
     pub sell_criterion: f32,
     pub master_position: i32,
@@ -21,10 +37,9 @@ pub struct Strategy {
     pub qty: u32,
 }
 
-impl Strategy {
-    pub fn new(name: StrategyName) -> Self {
+impl TestStrategy {
+    pub fn new() -> Self {
         Self {
-            name,
             buy_criterion: f32::INFINITY,
             sell_criterion: -f32::INFINITY,
             master_position: 0,
@@ -33,4 +48,15 @@ impl Strategy {
             qty: 0,
         }
     }
+}
+
+impl Default for TestStrategy {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[allow(dead_code)]
+pub struct FixPriceStrategy {
+    pub master_position: i32,
 }

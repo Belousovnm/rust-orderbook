@@ -204,9 +204,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        account::TradingAccount,
-        backtest::{Strategy, StrategyName},
-        management::OrderManagementSystem,
+        account::TradingAccount, backtest::TestStrategy, management::OrderManagementSystem,
         orderbook::Side,
     };
     use pretty_assertions::assert_eq;
@@ -230,7 +228,7 @@ mod tests {
         };
         // let offset = Ok((Side::Bid, 101, 0, 1, 0, 999));
         let mut ob = OrderBook::new();
-        let strat = &mut Strategy::new(StrategyName::TestStrategy);
+        let strat = &mut TestStrategy::new();
         let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
         ob = ob.process(snap, oms);
         assert_eq!(ob.get_bbo().unwrap(), (99, 101, 2));

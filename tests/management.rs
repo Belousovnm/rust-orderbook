@@ -1,19 +1,17 @@
 mod common;
 use common::{empty_ob, full_ob};
 use orderbook_lib::{
-    account::TradingAccount,
-    backtest::{Strategy, StrategyName},
-    management::OrderManagementSystem,
-    Indicator, Order, OrderBook, Side,
+    account::TradingAccount, backtest::TestStrategy, management::OrderManagementSystem, Indicator,
+    Order, OrderBook, Side,
 };
 use pretty_assertions::assert_eq;
 use rstest::rstest;
 
 #[rstest]
-#[case(empty_ob(), Err("Missing Ref Price"))]
+#[case(empty_ob(), Err("Missing Ref Price".to_owned()))]
 #[case(full_ob(), Ok(Order{id: 777, side: Side::Bid, price: 100, qty: 10}))]
-fn ref_price_to_order_test(#[case] ob: OrderBook, #[case] expected: Result<Order, &str>) {
-    let mut strategy = Strategy::new(StrategyName::TestStrategy);
+fn ref_price_to_order_test(#[case] ob: OrderBook, #[case] expected: Result<Order, String>) {
+    let mut strategy = TestStrategy::new();
     let account = TradingAccount::new(0);
     strategy.buy_criterion = 0.0;
     strategy.buy_position_limit = 10;

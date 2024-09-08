@@ -1,8 +1,8 @@
 use orderbook_lib::{
     account::TradingAccount,
-    backtest::{snap_to_event, Strategy, StrategyName},
+    backtest::{snap_to_event, StrategyMetrics, TestStrategy},
     management::OrderManagementSystem,
-    Indicator, OrderBook, Strategy,
+    Indicator, OrderBook,
 };
 use pretty_assertions::assert_eq;
 use rstest::rstest;
@@ -22,7 +22,7 @@ fn snap_to_event_test(#[case] criterions: (f32, f32), #[case] expected: Strategy
     let ob_path = "data/ob.csv";
     let orders_path = "data/orders.csv";
     let mut ob = OrderBook::new();
-    let mut strat = Strategy::new(StrategyName::TestStrategy);
+    let mut strat = TestStrategy::new();
     let initial_balance = 0;
     strat.buy_criterion = criterions.0;
     strat.sell_criterion = criterions.1;
@@ -37,6 +37,6 @@ fn snap_to_event_test(#[case] criterions: (f32, f32), #[case] expected: Strategy
     // Setup OMS
     let mut oms = OrderManagementSystem::new(&mut strat, money_account);
 
-    let metrics = snap_to_event(midprice, &mut oms, &mut ob, ob_path, orders_path);
+    let metrics = snap_to_event(&midprice, &mut oms, &mut ob, ob_path, orders_path);
     assert_eq!(metrics, expected);
 }

@@ -2,13 +2,13 @@
 #![allow(clippy::cast_possible_truncation)]
 use crate::{
     account::TradingAccount,
-    backtest::Strategy,
+    backtest::{Strategy, TestStrategy},
     dbgp,
     orderbook::{ExecutionReport, Order, OrderBook, OrderStatus, Side},
 };
 
-pub struct OrderManagementSystem<'a> {
-    pub strategy: &'a mut Strategy,
+pub struct OrderManagementSystem<'a, S: Strategy> {
+    pub strategy: &'a mut S,
     pub account: TradingAccount,
     pub active_buy_order: Option<Order>,
     pub active_sell_order: Option<Order>,
@@ -16,8 +16,8 @@ pub struct OrderManagementSystem<'a> {
     pub strategy_sell_signal: Option<Order>,
 }
 
-impl<'a, 'b> OrderManagementSystem<'b> {
-    pub fn new(strategy: &'b mut Strategy, account: TradingAccount) -> Self {
+impl<'a, S: Strategy> OrderManagementSystem<'a, S> {
+    pub fn new(strategy: &'a mut S, account: TradingAccount) -> Self {
         Self {
             strategy,
             account,
@@ -25,80 +25,6 @@ impl<'a, 'b> OrderManagementSystem<'b> {
             active_sell_order: None,
             strategy_buy_signal: None,
             strategy_sell_signal: None,
-        }
-    }
-
-    /// # Errors
-    ///
-    /// Will return `Err` if either `Indicator` fails to provide reference price
-    /// or `Strategy` has no limit left for this side
-    pub fn calculate_buy_order(
-        &'a self,
-        ref_price: Option<f32>,
-        id: u64,
-    ) -> Result<Order, &'b str> {
-        let side = Side::Bid;
-        let price = (ref_price.ok_or("Missing Ref Price")? * (1.0 + self.strategy.buy_criterion))
-            .floor() as u32;
-        let free_qty = if self.strategy.buy_position_limit - self.strategy.master_position > 0 {
-            (self.strategy.buy_position_limit - self.strategy.master_position) as u32
-        } else {
-            0
-        };
-        let qty = self.strategy.qty.min(free_qty);
-        // dbgp!(
-        //     "free_qty = {}, strategy_qty = {}, qty = {}",
-        //     free_qty,
-        //     self.strategy.qty,
-        //     qty
-        // );
-        if qty > 0 {
-            let order = Order {
-                id,
-                side,
-                price,
-                qty,
-            };
-            Ok(order)
-        } else {
-            Err("No Limit left")
-        }
-    }
-
-    /// # Errors
-    ///
-    /// Will return `Err` if either `Indicator` fails to provide reference price
-    /// or `Strategy` has no limit left for this side
-    pub fn calculate_sell_order(
-        &'a self,
-        ref_price: Option<f32>,
-        id: u64,
-    ) -> Result<Order, &'b str> {
-        let side = Side::Ask;
-        let price = (ref_price.ok_or("Missing Ref Price")? * (1.0 + self.strategy.sell_criterion))
-            .ceil() as u32;
-        let free_qty = if -self.strategy.sell_position_limit + self.strategy.master_position > 0 {
-            (-self.strategy.sell_position_limit + self.strategy.master_position) as u32
-        } else {
-            0
-        };
-        let qty = self.strategy.qty.min(free_qty);
-        // dbgp!(
-        //     "free_qty = {}, strategy_qty = {}, qty = {}",
-        //     free_qty,
-        //     self.strategy.qty,
-        //     qty
-        // );
-        if qty > 0 {
-            let order = Order {
-                id,
-                side,
-                price,
-                qty,
-            };
-            Ok(order)
-        } else {
-            Err("No Limit left")
         }
     }
 
@@ -117,7 +43,7 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                         trader_filled_qty,
                         trader_filled_price,
                     );
-                    self.strategy.master_position += trader_filled_qty as i32;
+                    self.strategy.set_master_position(trader_filled_qty as i32);
                     self.account.balance -= (trader_filled_qty * trader_filled_price) as i32;
                     dbgp!("TRADER FILLED: {}", trader_filled_qty);
                     if let Some(active_buy) = self.active_buy_order {
@@ -151,7 +77,7 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                     trader_filled_qty,
                     trader_filled_price,
                 );
-                self.strategy.master_position -= trader_filled_qty as i32;
+                self.strategy.set_master_position(trader_filled_qty as i32);
                 self.account.balance += (trader_filled_qty * trader_filled_price) as i32;
                 dbgp!("TRADER FILLED: {}", trader_filled_qty);
                 if let Some(active_sell) = self.active_sell_order {
@@ -212,6 +138,82 @@ impl<'a, 'b> OrderManagementSystem<'b> {
         }
     }
 
+    pub fn get_order_id(&self, side: Side) -> Option<u64> {
+        match side {
+            Side::Bid => self.active_buy_order.map(|order| order.id),
+            Side::Ask => self.active_sell_order.map(|order| order.id),
+        }
+    }
+}
+
+impl<'a> OrderManagementSystem<'a, TestStrategy> {
+    /// # Errors
+    ///
+    /// Will return `Err` if either `Indicator` fails to provide reference price
+    /// or `Strategy` has no limit left for this side
+    pub fn calculate_buy_order(&self, ref_price: Option<f32>, id: u64) -> Result<Order, String> {
+        let side = Side::Bid;
+        let price = (ref_price.ok_or_else(|| "Missing Ref Price".to_owned())?
+            * (1.0 + self.strategy.buy_criterion))
+            .floor() as u32;
+        let free_qty = if self.strategy.buy_position_limit - self.strategy.master_position > 0 {
+            (self.strategy.buy_position_limit - self.strategy.master_position) as u32
+        } else {
+            0
+        };
+        let qty = self.strategy.qty.min(free_qty);
+        // dbgp!(
+        //     "free_qty = {}, strategy_qty = {}, qty = {}",
+        //     free_qty,
+        //     self.strategy.qty,
+        //     qty
+        // );
+        if qty > 0 {
+            let order = Order {
+                id,
+                side,
+                price,
+                qty,
+            };
+            Ok(order)
+        } else {
+            Err("No Limit left".to_owned())
+        }
+    }
+
+    /// # Errors
+    ///
+    /// Will return `Err` if either `Indicator` fails to provide reference price
+    /// or `Strategy` has no limit left for this side
+    pub fn calculate_sell_order(&self, ref_price: Option<f32>, id: u64) -> Result<Order, String> {
+        let side = Side::Ask;
+        let price = (ref_price.ok_or_else(|| "Missing Ref Price".to_owned())?
+            * (1.0 + self.strategy.sell_criterion))
+            .ceil() as u32;
+        let free_qty = if -self.strategy.sell_position_limit + self.strategy.master_position > 0 {
+            (-self.strategy.sell_position_limit + self.strategy.master_position) as u32
+        } else {
+            0
+        };
+        let qty = self.strategy.qty.min(free_qty);
+        // dbgp!(
+        //     "free_qty = {}, strategy_qty = {}, qty = {}",
+        //     free_qty,
+        //     self.strategy.qty,
+        //     qty
+        // );
+        if qty > 0 {
+            let order = Order {
+                id,
+                side,
+                price,
+                qty,
+            };
+            Ok(order)
+        } else {
+            Err("No Limit left".to_owned())
+        }
+    }
     /// # Panics
     ///
     /// Will panick
@@ -339,13 +341,6 @@ impl<'a, 'b> OrderManagementSystem<'b> {
                 self.send_sell_order(ob);
             }
             (false, false) => {}
-        }
-    }
-
-    pub fn get_order_id(&self, side: Side) -> Option<u64> {
-        match side {
-            Side::Bid => self.active_buy_order.map(|order| order.id),
-            Side::Ask => self.active_sell_order.map(|order| order.id),
         }
     }
 }
