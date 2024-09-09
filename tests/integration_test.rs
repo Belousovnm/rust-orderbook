@@ -1,5 +1,10 @@
 mod common;
-use orderbook::{LimitOrder, Order, OrderBook, Side, Snap};
+use orderbook_lib::{
+    account::TradingAccount,
+    backtest::{Strategy, StrategyName},
+    management::OrderManagementSystem,
+    LimitOrder, Order, OrderBook, Side, Snap,
+};
 use pretty_assertions::assert_eq;
 use rstest::{fixture, rstest};
 
@@ -24,9 +29,11 @@ fn deser_level(deser: Snap) {
 #[rstest]
 fn deser_to_ob(deser: Snap) {
     let mut ob = OrderBook::new();
+    let strat = &mut Strategy::new(StrategyName::TestStrategy);
+    let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
 
     let snap = deser;
-    ob = ob.process(snap, (0, 0));
+    ob = ob.process(snap, oms);
     assert_eq!(ob.get_bbo(), Ok((10, 11, 1)))
 }
 
@@ -34,6 +41,9 @@ fn deser_to_ob(deser: Snap) {
 fn exec_report_test() {
     let trader_order_id = 333;
     let mut ob = OrderBook::new();
+    let strat = &mut Strategy::new(StrategyName::TestStrategy);
+    let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
+
     let snap = Snap {
         exch_epoch: 0,
         vec: vec![
@@ -54,18 +64,21 @@ fn exec_report_test() {
             },
         ],
     };
-    ob = ob.process(snap, (909, trader_order_id));
+    ob = ob.process(snap, oms);
     // if matches! {fr.status, OrderStatus::Filled} {
     //     dbgp!("{:#?}, avg_fill_price {}", fr, fr.avg_fill_price());
     // }
     // println!("{:?}", SystemTime::now());
-    let _ = ob.add_limit_order(Order {
+    oms.active_sell_order = Some(Order {
         side: Side::Ask,
         price: 99,
         qty: 10,
         id: trader_order_id,
         ts_create: 0
-    }, 0);
+    });
+
+    let _ = ob.add_limit_order(oms.active_sell_order.unwrap(), 0);
+
 
     let snap = Snap {
         exch_epoch: 0,
@@ -87,7 +100,7 @@ fn exec_report_test() {
             },
         ],
     };
-    ob = ob.process(snap, (909, trader_order_id));
+    ob = ob.process(snap, oms);
 
     let exec_report = ob.add_limit_order(Order {
         side: Side::Bid,
@@ -99,3 +112,80 @@ fn exec_report_test() {
     let filled_orders = vec![(222, 100, 99, 0), (333, 10, 99, 0), (444, 25, 99, 0)];
     assert_eq!(exec_report.filled_orders, filled_orders);
 }
+
+#[test]
+fn exec_report_fp_test() {
+    let trader_order_id = 333;
+    let mut ob = OrderBook::new();
+    let strat = &mut Strategy::new(StrategyName::TestStrategy);
+    let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
+
+    let snap = Snap {
+        exch_epoch: 0,
+        vec: vec![
+            LimitOrder {
+                side: Side::Ask,
+                price: 99,
+                qty: 100,
+            },
+            LimitOrder {
+                side: Side::Ask,
+                price: 100,
+                qty: 10,
+            },
+            LimitOrder {
+                side: Side::Ask,
+                price: 101,
+                qty: 10,
+            },
+        ],
+    };
+    ob = ob.process(snap, oms);
+    // if matches! {fr.status, OrderStatus::Filled} {
+    //     dbgp!("{:#?}, avg_fill_price {}", fr, fr.avg_fill_price());
+    // }
+    // println!("{:?}", SystemTime::now());
+    oms.active_sell_order = Some(Order {
+        side: Side::Ask,
+        price: 99,
+        qty: 10,
+        id: trader_order_id,
+        ts_create: 0
+    });
+
+    let _ = ob.add_limit_order(oms.active_sell_order.unwrap(), 0);
+
+
+    let snap = Snap {
+        exch_epoch: 1000,
+        vec: vec![
+            LimitOrder {
+                side: Side::Ask,
+                price: 99,
+                qty: 150,
+            },
+            LimitOrder {
+                side: Side::Ask,
+                price: 100,
+                qty: 10,
+            },
+            LimitOrder {
+                side: Side::Ask,
+                price: 101,
+                qty: 5,
+            },
+        ],
+    };
+    ob = ob.process(snap, oms);
+
+    let exec_report = ob.add_limit_order(Order {
+        side: Side::Bid,
+        price: 99,
+        qty: 135,
+        id: 1010,
+        ts_create: 0
+    }, 1000);
+    let filled_orders = vec![(222, 100, 99, 1000), (333, 10, 99, 1000), (444, 25, 99, 0)];
+    assert_eq!(exec_report.filled_orders, filled_orders);
+}
+

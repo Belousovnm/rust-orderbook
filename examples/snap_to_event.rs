@@ -1,8 +1,12 @@
+
 use std::collections::HashMap;
 use std::env;
-use orderbook::backtest::snap_to_event;
-use orderbook::backtest::{Strategy, StrategyName};
-use orderbook::{account::TradingAccount, management::OrderManagementSystem, Indicator, OrderBook};
+use orderbook_lib::{
+    account::TradingAccount,
+    backtest::{snap_to_event, Strategy, StrategyName},
+    management::OrderManagementSystem,
+    Indicator, OrderBook,
+};
 
 fn main() {
     let ob_path = "data/ob.csv";
@@ -11,8 +15,9 @@ fn main() {
     let mut strat = Strategy::new(StrategyName::TestStrategy);
     let initial_balance = 0;
 
-    let mut  fill_times_bid_all: HashMap<(u8,u8), HashMap<u64, u64>> = HashMap::new();
-    let mut  fill_times_ask_all: HashMap<(u8,u8), HashMap<u64, u64>> = HashMap::new();
+    // level --> (time --> (flag_fill, time_to_fill))
+    let mut  fill_times_bid_all: HashMap<u8, HashMap<u64, (bool, u64)>> = HashMap::new();
+    let mut  fill_times_ask_all: HashMap<u8, HashMap<u64, (bool, u64)>> = HashMap::new();
 
     let money_account = TradingAccount::new(initial_balance);
     let midprice = Indicator::Midprice;
@@ -38,27 +43,24 @@ fn main() {
     if is_fp {
         // walk through levels from 1 to 5
         for level in 1..5 {
-            // walk through qty factors from 1 to 10
-            for qty_mul in 1..10 {
-                strat.buy_criterion = -0.0001 * level as f32;
-                strat.sell_criterion = 0.0001 * level as f32;
-                strat.qty = 10 * qty_mul;
 
-                let money_account = TradingAccount::new(initial_balance);
-                let midprice = Indicator::Midprice;
-                let mut oms = OrderManagementSystem::new(&mut strat, money_account);
-                oms.is_fp_tracking = true;
+            strat.buy_criterion = -0.0001 * level as f32;
+            strat.sell_criterion = 0.0001 * level as f32;
+            strat.qty = 1;
 
-                let metrics = snap_to_event(midprice, &mut oms, &mut ob, ob_path, orders_path);
+            let money_account = TradingAccount::new(initial_balance);
+            let midprice = Indicator::Midprice;
+            let mut oms = OrderManagementSystem::new(&mut strat, money_account);
+            oms.is_fp_tracking = true;
 
-                fill_times_bid_all.insert((level, qty_mul as u8), metrics.fill_times_bid);
-                fill_times_ask_all.insert((level, qty_mul as u8), metrics.fill_times_ask);
-            }
+            let metrics = snap_to_event(&midprice, &mut oms, &mut ob, ob_path, orders_path);
+
+            fill_times_bid_all.insert(level, metrics.fill_times_bid);
+            fill_times_ask_all.insert(level,  metrics.fill_times_ask);
+
         }
     } else {
         let mut oms = OrderManagementSystem::new(&mut strat, money_account);
-        snap_to_event(midprice, &mut oms, &mut ob, ob_path, orders_path);
+        snap_to_event(&midprice, &mut oms, &mut ob, ob_path, orders_path);
     }
-
-    // save fill_times to data base
 }

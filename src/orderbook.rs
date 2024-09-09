@@ -1,5 +1,8 @@
-// Add replace order
-use crate::dbgp;
+use crate::{
+    dbgp,
+    management::OrderManagementSystem,
+    snap::{next_snap, Snap},
+};
 use rand::Rng;
 use serde::Serialize;
 use std::{
@@ -17,15 +20,17 @@ pub enum Side {
     Ask,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Default)]
 pub enum OrderStatus {
+    #[default]
     Uninitialized,
     Created,
     Filled,
     PartiallyFilled,
+    Cancelled,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ExecutionReport {
     // Orders filled (id, qty, price, time_to_fill)
     pub taker_side: Side,
@@ -35,7 +40,7 @@ pub struct ExecutionReport {
 }
 
 impl ExecutionReport {
-    const fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             taker_side: Side::Bid,
             filled_orders: Vec::new(),
@@ -95,6 +100,7 @@ impl HalfBook {
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
+#[must_use]
 pub struct OrderBook {
     pub best_bid_price: Option<u32>,
     pub best_offer_price: Option<u32>,
@@ -116,13 +122,23 @@ impl OrderBook {
         }
     }
 
-    pub fn cancel_order(&mut self, order_id: u64) -> Result<&str, &str> {
+    /// # Errors
+    ///
+    /// Will return `Err` if `order_id` is not found in `OrderBook`
+    ///
+    /// # Panics
+    ///
+    /// Will panic if `OrderBook` state was corrupted
+    pub fn cancel_order(&mut self, order_id: u64) -> Result<ExecutionReport, String> {
         if let Some((side, price_level, price)) = self.order_loc.get(&order_id) {
             let book = match side {
                 Side::Bid => &mut self.bid_book,
                 Side::Ask => &mut self.ask_book,
             };
-            let currdeque = book.price_levels.get_mut(*price_level).unwrap();
+            let currdeque = book
+                .price_levels
+                .get_mut(*price_level)
+                .expect("price level is missing");
             currdeque.retain(|x| x.id != order_id);
             if currdeque.is_empty() {
                 book.price_map.remove(price);
@@ -133,9 +149,12 @@ impl OrderBook {
                 self.update_bbo();
             }
             self.order_loc.remove(&order_id);
-            Ok("Successfully cancelled order")
+            Ok(ExecutionReport {
+                status: OrderStatus::Cancelled,
+                ..Default::default()
+            })
         } else {
-            Err("No such order id")
+            Err("No such order id".to_owned())
         }
     }
 
@@ -362,6 +381,9 @@ impl OrderBook {
         exec_report
     }
 
+    /// # Errors
+    ///
+    /// Will return `Err` if atleast one `HalfBook` in `OrderBook` is empty
     pub fn get_bbo(&self) -> Result<(u32, u32, u32), &str> {
         match (self.best_bid_price, self.best_offer_price) {
             (None, None) => Err("Both bid and offer HalfBooks are empty"),
@@ -381,7 +403,17 @@ impl OrderBook {
             }
         }
     }
-    pub fn get_offset(&self, order_id: u64) -> Result<Offset, &str> {
+
+
+    /// # Errors
+    ///
+    /// Will return `Err` if `order_id` is not found in `OrderBook`
+    pub fn get_offset(
+        &self,
+        oms: &mut OrderManagementSystem,
+        side: Side,
+    ) -> Result<Offset, &str> {
+        let order_id = oms.get_order_id(side).ok_or("No such order id")?;
         if let Some((side, price_level, price)) = self.order_loc.get(&order_id) {
             let book = match side {
                 Side::Bid => &self.bid_book,
@@ -431,17 +463,46 @@ impl OrderBook {
         order.next()
     }
 
-    pub fn replace_limit_order(
+    /// # Errors
+    ///
+    /// Will return `Err` if `order_id` is not found in `OrderBook`
+    pub fn amend_limit_order(
         &mut self,
         order_id: u64,
         new_order: Order,
-    ) -> Result<ExecutionReport, &str> {
-        if self.cancel_order(order_id).is_ok() {
-            let exec_report = self.add_limit_order(new_order, 0);
-            Ok(exec_report)
-        } else {
-            Err("Order id={order_id} not found")
+        epoch: u64
+    ) -> Result<ExecutionReport, String> {
+        self.cancel_order(order_id)?;
+        Ok(self.add_limit_order(new_order, epoch))
+    }
+
+    pub fn get_raw(&self, oms: &OrderManagementSystem) -> Self {
+        let mut raw_ob = self.clone();
+        if let Some(order) = oms.active_buy_order {
+            let _ = raw_ob.cancel_order(order.id);
         }
+        if let Some(order) = oms.active_sell_order {
+            let _ = raw_ob.cancel_order(order.id);
+        }
+        raw_ob
+    }
+
+    pub fn process(&self, snap: Snap, oms: &mut OrderManagementSystem) -> Self {
+        let buy_offset = self.get_offset(oms, Side::Bid);
+        let sell_offset = self.get_offset(oms, Side::Ask);
+        dbgp!("OFFSET {:?}", (buy_offset, sell_offset));
+        let ob = next_snap(snap, (buy_offset, sell_offset));
+        if let Some(id) = oms.get_order_id(Side::Bid) {
+            if ob.get_order(id).is_none() {
+                oms.active_buy_order = None;
+            }
+        }
+        if let Some(id) = oms.get_order_id(Side::Ask) {
+            if ob.get_order(id).is_none() {
+                oms.active_sell_order = None;
+            }
+        }
+        ob
     }
 }
 

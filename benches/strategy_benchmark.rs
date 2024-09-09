@@ -1,22 +1,25 @@
-use core::time::Duration;
-use criterion::{criterion_group, criterion_main, Criterion};
-use csv::Reader;
-use orderbook::Snap;
-use std::fs::File;
-
-fn deserialize(snap_reader: &mut Reader<File>) {
-    let _srdr = snap_reader.deserialize::<Snap>();
-}
-
-pub fn criterion_benchmark(c: &mut Criterion) {
-    let ob_path = "data/ob.csv";
-    let snap_reader = &mut csv::Reader::from_path(ob_path).unwrap();
-    let mut group = c.benchmark_group("strategy-benchmark");
-    group.sample_size(10);
-    group.measurement_time(Duration::new(5, 0));
-    group.bench_function("deserialize", |b| b.iter(|| deserialize(snap_reader)));
-    group.finish();
-}
-
-criterion_group!(benches, criterion_benchmark);
-criterion_main!(benches);
+// #![feature(test)]
+// extern crate test;
+// use orderbook_lib::Snap;
+// use std::hint::black_box;
+//
+// fn deserialize() -> Vec<Result<Snap, csv::Error>> {
+//     let ob_path = "data/ob.csv";
+//     let snap_reader = csv::Reader::from_path(ob_path).unwrap();
+//     black_box(
+//         black_box(snap_reader)
+//             .deserialize::<Snap>()
+//             .collect::<Vec<_>>(),
+//     )
+// }
+//
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use test::Bencher;
+//
+//     #[bench]
+//     fn deserialize_bench(b: &mut Bencher) {
+//         b.iter(deserialize);
+//     }
+// }

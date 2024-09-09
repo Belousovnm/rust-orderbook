@@ -134,7 +134,7 @@ fn place_head_tail(
     }
 }
 
-fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) -> OrderBook {
+pub fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) -> OrderBook {
     let mut ob = OrderBook::new();
     match (offsets.0.ok(), offsets.1.ok()) {
         (
@@ -220,28 +220,22 @@ fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) 
                 &mut ob, qty_head, qty_tail, qty, new_qty, id, side, ask_price, epoch
             );
         }
-        (None, None) => {
-            place_order_from_snap(snap, &mut ob);
-        }
+        (None, None) => place_order_from_snap(snap, &mut ob),
         (_, _) => unreachable!(),
     }
     ob
-}
-
-impl OrderBook {
-    pub fn process(&self, snap: Snap, ids: (u64, u64)) -> Self {
-        let buy_offset = self.get_offset(ids.0);
-        let sell_offset = self.get_offset(ids.1);
-        dbgp!("OFFSET {:?}", (buy_offset, sell_offset));
-        next_snap(snap,  (buy_offset, sell_offset))
-    }
 }
 
 #[cfg(test)]
 mod tests {
 
     use super::*;
-    use crate::orderbook::Side;
+    use crate::{
+        account::TradingAccount,
+        backtest::{Strategy, StrategyName},
+        management::OrderManagementSystem,
+        orderbook::Side,
+    };
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -263,7 +257,9 @@ mod tests {
         };
         // let offset = Ok((Side::Bid, 101, 0, 1, 0, 999));
         let mut ob = OrderBook::new();
-        ob = ob.process(snap, (0, 0));
+        let strat = &mut Strategy::new(StrategyName::TestStrategy);
+        let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
+        ob = ob.process(snap, oms);
         assert_eq!(ob.get_bbo().unwrap(), (99, 101, 2));
     }
 }

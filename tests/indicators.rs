@@ -1,4 +1,4 @@
-use orderbook::{Indicator, Order, OrderBook, Side};
+use orderbook_lib::{Indicator, Order, OrderBook, Side};
 use pretty_assertions::assert_eq;
 use rstest::rstest;
 
