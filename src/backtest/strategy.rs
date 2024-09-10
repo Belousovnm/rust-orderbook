@@ -59,4 +59,5 @@ impl Default for TestStrategy {
 #[allow(dead_code)]
 pub struct FixPriceStrategy {
     pub master_position: i32,
+    // pub buy_price
 }

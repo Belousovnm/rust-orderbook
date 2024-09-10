@@ -428,7 +428,7 @@ impl OrderBook {
     /// Will return `Err` if `order_id` is not found in `OrderBook`
     pub fn get_offset(
         &self,
-        oms: &mut OrderManagementSystem<TestStrategy>,
+        oms: &OrderManagementSystem<TestStrategy>,
         side: Side,
     ) -> Result<(Side, u32, u32, u32, u32, u64), &str> {
         let order_id = oms.get_order_id(side).ok_or("No such order id")?;
