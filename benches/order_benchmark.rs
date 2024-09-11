@@ -27,13 +27,17 @@ fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook 
 pub fn criterion_benchmark(c: &mut Criterion) {
     let mut rng = rand::thread_rng();
     let mut group = c.benchmark_group("order-benchmark");
-    group.sample_size(10);
-    group.measurement_time(Duration::new(10, 0));
-    group.bench_function("Match orders", |b| {
-        b.iter(|| run_orders(1_000_000, &mut rng))
-    });
+    // let plot_config = PlotConfiguration::default().summary_scale(AxisScale::Logarithmic);
+    // group.plot_config(plot_config);
+    group.bench_function("Match orders", |b| b.iter(|| run_orders(1_000, &mut rng)));
     group.finish();
 }
 
-criterion_group!(benches, criterion_benchmark);
+criterion_group! {
+    name = benches;
+    config = Criterion::default()
+             .sample_size(10_000)
+             .measurement_time(Duration::from_secs(10));
+    targets = criterion_benchmark
+}
 criterion_main!(benches);
