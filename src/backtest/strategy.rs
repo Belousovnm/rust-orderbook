@@ -29,12 +29,12 @@ impl Strategy for FixPriceStrategy {
 }
 
 pub struct TestStrategy {
+    pub qty: u32,
     pub buy_criterion: f32,
     pub sell_criterion: f32,
     pub master_position: i32,
     pub buy_position_limit: i32,
     pub sell_position_limit: i32,
-    pub qty: u32,
 }
 
 impl TestStrategy {
@@ -57,7 +57,14 @@ impl Default for TestStrategy {
 }
 
 #[allow(dead_code)]
+#[derive(Default)]
 pub struct FixPriceStrategy {
+    pub qty: u32,
+    pub buy_price: Option<u32>,
+    pub sell_price: Option<u32>,
     pub master_position: i32,
-    // pub buy_price
+    pub buy_position_limit: i32,
+    pub sell_position_limit: i32,
+    pub buy_tick_criterion: u8,
+    pub sell_tick_criterion: u8,
 }

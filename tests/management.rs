@@ -1,7 +1,7 @@
 mod common;
 use common::{empty_ob, full_ob};
 use orderbook_lib::{
-    account::TradingAccount, backtest::TestStrategy, management::OrderManagementSystem, Indicator,
+    account::TradingAccount, backtest::TestStrategy, management::OrderManagementSystem, Midprice,
     Order, OrderBook, Side,
 };
 use pretty_assertions::assert_eq;
@@ -17,8 +17,7 @@ fn ref_price_to_order_test(#[case] ob: OrderBook, #[case] expected: Result<Order
     strategy.buy_position_limit = 10;
     strategy.qty = 100;
     let trader_id = 777;
-    let midprice = Indicator::Midprice;
-    let m = midprice.evaluate(&ob);
+    let m = Midprice::evaluate(&ob);
     let oms = OrderManagementSystem::new(&mut strategy, account);
     let trader_order = oms.calculate_buy_order(m, trader_id);
 

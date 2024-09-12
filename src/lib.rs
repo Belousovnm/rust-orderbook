@@ -19,6 +19,7 @@
 pub mod account;
 pub mod backtest;
 pub mod diff;
+pub mod experiments;
 pub mod management;
 pub mod utils;
 
