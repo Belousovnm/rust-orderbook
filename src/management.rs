@@ -2,7 +2,7 @@
 #![allow(clippy::cast_possible_truncation)]
 use crate::{
     account::TradingAccount,
-    backtest::{Strategy, TestStrategy},
+    backtest::{FixPriceStrategy, Strategy, TestStrategy},
     dbgp,
     orderbook::{ExecutionReport, Order, OrderBook, OrderStatus, Side},
 };
@@ -278,6 +278,237 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
         }
 
         if let Ok(sell_order) = self.calculate_sell_order(m, trader_sell_id) {
+            match self.active_sell_order {
+                None => {
+                    dbgp!("[ STRAT] Order not found, place new order");
+                    dbgp!("[ STRAT] send {:#?}", sell_order);
+                    self.strategy_sell_signal = Some(sell_order);
+                    send_sell_order = true;
+                }
+                Some(Order {
+                    id: _id,
+                    side: Side::Ask,
+                    price,
+                    qty: _qty,
+                    // }) if price == sell_order.price && qty == sell_order.qty => {
+                }) if price == sell_order.price => {
+                    dbgp!("[ STRAT] Order found, passing");
+                    dbgp!("[ STRAT] price = {}", price);
+                    self.strategy_sell_signal = Some(sell_order);
+                }
+                Some(Order {
+                    id: _id,
+                    side: Side::Ask,
+                    price: _price,
+                    qty: _qty,
+                }) => {
+                    dbgp!("[ STRAT] Order found, need amend");
+                    dbgp!(
+                        "[ STRAT] Old price {}, New Price {}",
+                        _price,
+                        sell_order.price
+                    );
+                    dbgp!("[ STRAT] Old qty {}, New qty {}", _qty, sell_order.qty);
+                    dbgp!("[ STRAT] send {:#?}", sell_order);
+                    self.strategy_sell_signal = Some(sell_order);
+                    send_sell_order = true;
+                }
+                Some(Order {
+                    id: _id,
+                    side: Side::Bid,
+                    price: _price,
+                    qty: _qty,
+                }) => unreachable!(),
+            }
+        }
+        match (send_buy_order, send_sell_order) {
+            (true, true) => {
+                if let Some(active_sell) = self.active_sell_order {
+                    if self.strategy_buy_signal.unwrap().price < active_sell.price {
+                        self.send_buy_order(ob);
+                        self.send_sell_order(ob);
+                    } else {
+                        self.send_sell_order(ob);
+                        self.send_buy_order(ob);
+                    }
+                } else {
+                    self.send_buy_order(ob);
+                    self.send_sell_order(ob);
+                }
+            }
+            (true, false) => {
+                self.send_buy_order(ob);
+            }
+            (false, true) => {
+                self.send_sell_order(ob);
+            }
+            (false, false) => {}
+        }
+    }
+}
+
+impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
+    /// # Errors
+    ///
+    /// Will return `Err` if `get_bbo` returns Error
+    pub fn lock_bid_price(&self, bbo: Option<(u32, u32)>) -> Result<u32, String> {
+        let bid_price = match self.strategy.buy_price {
+            None => {
+                bbo.ok_or_else(|| "Missing Ref Price".to_owned())?.0
+                    + u32::from(self.strategy.buy_tick_criterion)
+            }
+            Some(price) => price,
+        };
+        Ok(bid_price)
+    }
+
+    /// # Errors
+    ///
+    /// Will return `Err` if `get_bbo` returns Error
+    pub fn lock_ask_price(&self, bbo: Option<(u32, u32)>) -> Result<u32, String> {
+        let ask_price = match self.strategy.sell_price {
+            None => {
+                bbo.ok_or_else(|| "Missing Ref Price".to_owned())?.1
+                    + u32::from(self.strategy.sell_tick_criterion)
+            }
+            Some(price) => price,
+        };
+        Ok(ask_price)
+    }
+
+    /// # Errors
+    ///
+    /// Will return `Err` if either `Indicator` fails to provide reference price
+    /// or `Strategy` has no limit left for this side
+    pub fn calculate_buy_order(&self, id: u64) -> Result<Order, String> {
+        let side = Side::Bid;
+        let price = self
+            .strategy
+            .buy_price
+            .ok_or_else(|| "Missing Buy Price".to_owned())?;
+        let free_qty = if self.strategy.buy_position_limit - self.strategy.master_position > 0 {
+            (self.strategy.buy_position_limit - self.strategy.master_position) as u32
+        } else {
+            0
+        };
+        let qty = self.strategy.qty.min(free_qty);
+        // dbgp!(
+        //     "free_qty = {}, strategy_qty = {}, qty = {}",
+        //     free_qty,
+        //     self.strategy.qty,
+        //     qty
+        // );
+        if qty > 0 {
+            let order = Order {
+                id,
+                side,
+                price,
+                qty,
+            };
+            Ok(order)
+        } else {
+            Err("No Limit left".to_owned())
+        }
+    }
+
+    /// # Errors
+    ///
+    /// Will return `Err` if either `Indicator` fails to provide reference price
+    /// or `Strategy` has no limit left for this side
+    pub fn calculate_sell_order(&self, id: u64) -> Result<Order, String> {
+        let side = Side::Ask;
+        let price = self
+            .strategy
+            .sell_price
+            .ok_or_else(|| "Missing Buy Price".to_owned())?;
+        let free_qty = if -self.strategy.sell_position_limit + self.strategy.master_position > 0 {
+            (-self.strategy.sell_position_limit + self.strategy.master_position) as u32
+        } else {
+            0
+        };
+        let qty = self.strategy.qty.min(free_qty);
+        // dbgp!(
+        //     "free_qty = {}, strategy_qty = {}, qty = {}",
+        //     free_qty,
+        //     self.strategy.qty,
+        //     qty
+        // );
+        if qty > 0 {
+            let order = Order {
+                id,
+                side,
+                price,
+                qty,
+            };
+            Ok(order)
+        } else {
+            Err("No Limit left".to_owned())
+        }
+    }
+
+    /// # Panics
+    ///
+    /// Will panick
+    pub fn send_orders(
+        &mut self,
+        ob: &mut OrderBook,
+        _m: Option<(u32, u32)>,
+        trader_buy_id: u64,
+        trader_sell_id: u64,
+    ) {
+        let mut send_buy_order = false;
+        let mut send_sell_order = false;
+        // dbgp!(
+        //     "Active Orders {:?}, {:?}",
+        //     self.active_buy_order,
+        //     self.active_sell_order
+        // );
+
+        if let Ok(buy_order) = self.calculate_buy_order(trader_buy_id) {
+            match self.active_buy_order {
+                None => {
+                    dbgp!("[ STRAT] Order not found, place new order");
+                    dbgp!("[ STRAT] send {:#?}", buy_order);
+                    self.strategy_buy_signal = Some(buy_order);
+                    send_buy_order = true;
+                }
+                Some(Order {
+                    id: _id,
+                    side: Side::Bid,
+                    price,
+                    qty: _qty,
+                }) if price == buy_order.price => {
+                    dbgp!("[ STRAT] Order found, passing");
+                    dbgp!("[ STRAT] price = {}", price);
+                    self.strategy_buy_signal = Some(buy_order);
+                }
+                Some(Order {
+                    id: _id,
+                    side: Side::Bid,
+                    price: _price,
+                    qty: _qty,
+                }) => {
+                    dbgp!("[ STRAT] Order found, need amend");
+                    dbgp!(
+                        "[ STRAT] Old price {}, New Price {}",
+                        _price,
+                        buy_order.price
+                    );
+                    dbgp!("[ STRAT] Old qty {}, New qty {}", _qty, buy_order.qty);
+                    dbgp!("[ STRAT] send {:#?}", buy_order);
+                    self.strategy_buy_signal = Some(buy_order);
+                    send_buy_order = true;
+                }
+                Some(Order {
+                    id: _id,
+                    side: Side::Ask,
+                    price: _price,
+                    qty: _qty,
+                }) => unreachable!(),
+            }
+        }
+
+        if let Ok(sell_order) = self.calculate_sell_order(trader_sell_id) {
             match self.active_sell_order {
                 None => {
                     dbgp!("[ STRAT] Order not found, place new order");

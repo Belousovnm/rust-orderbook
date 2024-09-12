@@ -1,4 +1,4 @@
-use orderbook_lib::{Indicator, Order, OrderBook, Side};
+use orderbook_lib::{Midprice, Order, OrderBook, Side};
 use pretty_assertions::assert_eq;
 use rstest::rstest;
 
@@ -29,6 +29,5 @@ fn full_ob(bid: u32, ask: u32) -> OrderBook {
 #[case(empty_ob(), None)]
 #[case(full_ob(99, 101), Some(100.0))]
 fn midprice_test(#[case] input: OrderBook, #[case] expected: Option<f32>) {
-    let midprice = Indicator::Midprice;
-    assert_eq!(midprice.evaluate(&input), expected);
+    assert_eq!(Midprice::evaluate(&input), expected);
 }

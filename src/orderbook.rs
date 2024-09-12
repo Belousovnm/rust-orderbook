@@ -1,5 +1,5 @@
 use crate::{
-    backtest::TestStrategy,
+    backtest::Strategy,
     dbgp,
     management::OrderManagementSystem,
     snap::{next_snap, Snap},
@@ -426,9 +426,9 @@ impl OrderBook {
     /// # Errors
     ///
     /// Will return `Err` if `order_id` is not found in `OrderBook`
-    pub fn get_offset(
+    pub fn get_offset<S: Strategy>(
         &self,
-        oms: &OrderManagementSystem<TestStrategy>,
+        oms: &OrderManagementSystem<S>,
         side: Side,
     ) -> Result<(Side, u32, u32, u32, u32, u64), &str> {
         let order_id = oms.get_order_id(side).ok_or("No such order id")?;
@@ -466,7 +466,7 @@ impl OrderBook {
             Err("No such order id")
         }
     }
-    pub fn get_raw(&self, oms: &OrderManagementSystem<TestStrategy>) -> Self {
+    pub fn get_raw<S: Strategy>(&self, oms: &OrderManagementSystem<S>) -> Self {
         let mut raw_ob = self.clone();
         if let Some(order) = oms.active_buy_order {
             let _ = raw_ob.cancel_order(order.id);
@@ -477,7 +477,7 @@ impl OrderBook {
         raw_ob
     }
 
-    pub fn process(&self, snap: Snap, oms: &mut OrderManagementSystem<TestStrategy>) -> Self {
+    pub fn process<S: Strategy>(&self, snap: Snap, oms: &mut OrderManagementSystem<S>) -> Self {
         let buy_offset = self.get_offset(oms, Side::Bid);
         let sell_offset = self.get_offset(oms, Side::Ask);
         dbgp!("OFFSET {:?}", (buy_offset, sell_offset));
