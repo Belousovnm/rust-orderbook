@@ -27,7 +27,7 @@ impl fmt::Display for StrategyMetrics {
 
 /// # Panics
 ///
-/// Will panic if File IO fails
+/// Will panic if file read fails
 pub fn strategy_flow(
     oms: &mut OrderManagementSystem<TestStrategy>,
     ob: &mut OrderBook,

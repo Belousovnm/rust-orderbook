@@ -72,7 +72,7 @@ fn place_head_tail(
     };
     if qty_head > 0 {
         let _ = ob.add_limit_order(Order {
-            id: id - 111,
+            id: id - 1,
             side,
             price,
             qty: qty_head,
@@ -114,7 +114,7 @@ fn place_head_tail(
     }
     if qty_tail > 0 {
         let _ = ob.add_limit_order(Order {
-            id: id + 111,
+            id: id + 1,
             side,
             price,
             qty: qty_tail,

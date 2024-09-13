@@ -2,8 +2,8 @@
 
 Limit Orderbook written in Rust.
 
-Process real-world data by
+Run toy strategy:
 
 ```
-cargo run --example snap_to_event
+cargo run --release --example strategy_flow
 ```

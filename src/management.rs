@@ -1,5 +1,6 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_possible_truncation)]
+
 use crate::{
     account::TradingAccount,
     backtest::{FixPriceStrategy, Strategy, TestStrategy},
@@ -25,85 +26,6 @@ impl<'a, S: Strategy> OrderManagementSystem<'a, S> {
             active_sell_order: None,
             strategy_buy_signal: None,
             strategy_sell_signal: None,
-        }
-    }
-
-    pub fn update(&mut self, exec_report: &ExecutionReport) {
-        if let Some(order) = self.active_buy_order {
-            if exec_report.taker_side == Side::Ask {
-                if let Some(key) = exec_report
-                    .filled_orders
-                    .iter()
-                    .position(|&o| o.0 == order.id)
-                {
-                    let trader_filled_qty = exec_report.filled_orders[key].1;
-                    let trader_filled_price = exec_report.filled_orders[key].2;
-                    dbgp!(
-                        "[TRADE ] qty = {:?}, price = {:?}",
-                        trader_filled_qty,
-                        trader_filled_price,
-                    );
-                    self.strategy
-                        .increment_master_position(trader_filled_qty as i32);
-                    self.account.balance -= (trader_filled_qty * trader_filled_price) as i32;
-                    dbgp!("TRADER FILLED: {}", trader_filled_qty);
-                    if let Some(active_buy) = self.active_buy_order {
-                        if trader_filled_qty == active_buy.qty {
-                            self.active_buy_order = None;
-                        } else {
-                            let qty = order.qty;
-                            // dbgp!("BEFORE FILLED: {:?}", self.active_buy_order);
-                            self.active_buy_order = Some(Order {
-                                id: order.id,
-                                side: Side::Bid,
-                                price: trader_filled_price,
-                                qty: qty - trader_filled_qty,
-                            });
-                            // dbgp!("AFTER FILLED: {:?}", self.active_buy_order);
-                        }
-                    }
-                }
-            }
-        }
-        if let Some(order) = self.active_sell_order {
-            if let Some(key) = exec_report
-                .filled_orders
-                .iter()
-                .position(|&o| o.0 == order.id)
-            {
-                let trader_filled_qty = exec_report.filled_orders[key].1;
-                let trader_filled_price = exec_report.filled_orders[key].2;
-                dbgp!(
-                    "[TRADE ] qty = {:?}, price = {:?}",
-                    trader_filled_qty,
-                    trader_filled_price,
-                );
-                self.strategy
-                    .increment_master_position(-(trader_filled_qty as i32));
-                self.account.balance += (trader_filled_qty * trader_filled_price) as i32;
-                dbgp!("TRADER FILLED: {}", trader_filled_qty);
-                if let Some(active_sell) = self.active_sell_order {
-                    if trader_filled_qty == active_sell.qty {
-                        self.active_sell_order = None;
-                    } else {
-                        let qty = order.qty;
-                        // dbgp!("BEFORE FILLED: {:?}", self.active_sell_order);
-                        self.active_sell_order = Some(Order {
-                            id: order.id,
-                            side: Side::Ask,
-                            price: trader_filled_price,
-                            qty: qty - trader_filled_qty,
-                        });
-                        // dbgp!("AFTER FILLED: {:?}", self.active_sell_order);
-                    }
-                }
-                // dbgp!(
-                //     "Active Orders {:?}, {:?}",
-                //     self.active_buy_order,
-                //     self.active_sell_order
-                // );
-            };
-            // std::mem::swap(&mut self.strategy.master_position, &mut new_position);
         }
     }
 
@@ -275,7 +197,9 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
                     qty: _qty,
                 }) => unreachable!(),
             }
-        }
+        } else if let Some(order) = self.active_buy_order {
+            let _ = ob.cancel_order(order.id);
+        };
 
         if let Ok(sell_order) = self.calculate_sell_order(m, trader_sell_id) {
             match self.active_sell_order {
@@ -320,7 +244,10 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
                     qty: _qty,
                 }) => unreachable!(),
             }
-        }
+        } else if let Some(order) = self.active_sell_order {
+            let _ = ob.cancel_order(order.id);
+        };
+
         match (send_buy_order, send_sell_order) {
             (true, true) => {
                 if let Some(active_sell) = self.active_sell_order {
@@ -345,12 +272,90 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
             (false, false) => {}
         }
     }
+    pub fn update(&mut self, exec_report: &ExecutionReport) {
+        if let Some(order) = self.active_buy_order {
+            if exec_report.taker_side == Side::Ask {
+                if let Some(key) = exec_report
+                    .filled_orders
+                    .iter()
+                    .position(|&o| o.0 == order.id)
+                {
+                    let trader_filled_qty = exec_report.filled_orders[key].1;
+                    let trader_filled_price = exec_report.filled_orders[key].2;
+                    dbgp!(
+                        "[TRADE ] qty = {:?}, price = {:?}",
+                        trader_filled_qty,
+                        trader_filled_price,
+                    );
+                    self.strategy
+                        .increment_master_position(trader_filled_qty as i32);
+                    self.account.balance -= (trader_filled_qty * trader_filled_price) as i32;
+                    dbgp!("TRADER FILLED: {}", trader_filled_qty);
+                    if let Some(active_buy) = self.active_buy_order {
+                        if trader_filled_qty == active_buy.qty {
+                            self.active_buy_order = None;
+                        } else {
+                            let qty = order.qty;
+                            // dbgp!("BEFORE FILLED: {:?}", self.active_buy_order);
+                            self.active_buy_order = Some(Order {
+                                id: order.id,
+                                side: Side::Bid,
+                                price: trader_filled_price,
+                                qty: qty - trader_filled_qty,
+                            });
+                            // dbgp!("AFTER FILLED: {:?}", self.active_buy_order);
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(order) = self.active_sell_order {
+            if let Some(key) = exec_report
+                .filled_orders
+                .iter()
+                .position(|&o| o.0 == order.id)
+            {
+                let trader_filled_qty = exec_report.filled_orders[key].1;
+                let trader_filled_price = exec_report.filled_orders[key].2;
+                dbgp!(
+                    "[TRADE ] qty = {:?}, price = {:?}",
+                    trader_filled_qty,
+                    trader_filled_price,
+                );
+                self.strategy
+                    .increment_master_position(-(trader_filled_qty as i32));
+                self.account.balance += (trader_filled_qty * trader_filled_price) as i32;
+                dbgp!("TRADER FILLED: {}", trader_filled_qty);
+                if let Some(active_sell) = self.active_sell_order {
+                    if trader_filled_qty == active_sell.qty {
+                        self.active_sell_order = None;
+                    } else {
+                        let qty = order.qty;
+                        // dbgp!("BEFORE FILLED: {:?}", self.active_sell_order);
+                        self.active_sell_order = Some(Order {
+                            id: order.id,
+                            side: Side::Ask,
+                            price: trader_filled_price,
+                            qty: qty - trader_filled_qty,
+                        });
+                        // dbgp!("AFTER FILLED: {:?}", self.active_sell_order);
+                    }
+                }
+                // dbgp!(
+                //     "Active Orders {:?}, {:?}",
+                //     self.active_buy_order,
+                //     self.active_sell_order
+                // );
+            };
+            // std::mem::swap(&mut self.strategy.master_position, &mut new_position);
+        }
+    }
 }
 
 impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
     /// # Errors
     ///
-    /// Will return `Err` if `get_bbo` returns Error
+    /// Will return `Err` if `get_bbo` return `Err`
     pub fn lock_bid_price(&self, bbo: Option<(u32, u32)>) -> Result<u32, String> {
         let bid_price = match self.strategy.buy_price {
             None => {
@@ -364,13 +369,14 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
 
     /// # Errors
     ///
-    /// Will return `Err` if `get_bbo` returns Error
+    /// Will return `Err` if `get_bbo` returns `Err`
     pub fn lock_ask_price(&self, bbo: Option<(u32, u32)>) -> Result<u32, String> {
         let ask_price = match self.strategy.sell_price {
             None => {
                 bbo.ok_or_else(|| "Missing Ref Price".to_owned())?.1
                     + u32::from(self.strategy.sell_tick_criterion)
             }
+
             Some(price) => price,
         };
         Ok(ask_price)
@@ -378,72 +384,36 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
 
     /// # Errors
     ///
-    /// Will return `Err` if either `Indicator` fails to provide reference price
-    /// or `Strategy` has no limit left for this side
+    /// Will return `Err` if `Indicator` fails to provide reference price
     pub fn calculate_buy_order(&self, id: u64) -> Result<Order, String> {
-        let side = Side::Bid;
         let price = self
             .strategy
             .buy_price
             .ok_or_else(|| "Missing Buy Price".to_owned())?;
-        let free_qty = if self.strategy.buy_position_limit - self.strategy.master_position > 0 {
-            (self.strategy.buy_position_limit - self.strategy.master_position) as u32
-        } else {
-            0
+        let order = Order {
+            id,
+            side: Side::Bid,
+            price,
+            qty: self.strategy.qty,
         };
-        let qty = self.strategy.qty.min(free_qty);
-        // dbgp!(
-        //     "free_qty = {}, strategy_qty = {}, qty = {}",
-        //     free_qty,
-        //     self.strategy.qty,
-        //     qty
-        // );
-        if qty > 0 {
-            let order = Order {
-                id,
-                side,
-                price,
-                qty,
-            };
-            Ok(order)
-        } else {
-            Err("No Limit left".to_owned())
-        }
+        Ok(order)
     }
 
     /// # Errors
     ///
-    /// Will return `Err` if either `Indicator` fails to provide reference price
-    /// or `Strategy` has no limit left for this side
+    /// Will return `Err` if `Indicator` fails to provide reference price
     pub fn calculate_sell_order(&self, id: u64) -> Result<Order, String> {
-        let side = Side::Ask;
         let price = self
             .strategy
             .sell_price
             .ok_or_else(|| "Missing Buy Price".to_owned())?;
-        let free_qty = if -self.strategy.sell_position_limit + self.strategy.master_position > 0 {
-            (-self.strategy.sell_position_limit + self.strategy.master_position) as u32
-        } else {
-            0
+        let order = Order {
+            id,
+            side: Side::Ask,
+            price,
+            qty: self.strategy.qty,
         };
-        let qty = self.strategy.qty.min(free_qty);
-        // dbgp!(
-        //     "free_qty = {}, strategy_qty = {}, qty = {}",
-        //     free_qty,
-        //     self.strategy.qty,
-        //     qty
-        // );
-        if qty > 0 {
-            let order = Order {
-                id,
-                side,
-                price,
-                qty,
-            };
-            Ok(order)
-        } else {
-            Err("No Limit left".to_owned())
-        }
+        Ok(order)
     }
 
     /// # Panics
@@ -496,8 +466,9 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                     );
                     dbgp!("[ STRAT] Old qty {}, New qty {}", _qty, buy_order.qty);
                     dbgp!("[ STRAT] send {:#?}", buy_order);
-                    self.strategy_buy_signal = Some(buy_order);
-                    send_buy_order = true;
+                    // self.strategy_buy_signal = Some(buy_order);
+                    // send_buy_order = true;
+                    unreachable!()
                 }
                 Some(Order {
                     id: _id,
@@ -506,7 +477,9 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                     qty: _qty,
                 }) => unreachable!(),
             }
-        }
+        } else if let Some(order) = self.active_buy_order {
+            let _ = ob.cancel_order(order.id);
+        };
 
         if let Ok(sell_order) = self.calculate_sell_order(trader_sell_id) {
             match self.active_sell_order {
@@ -541,8 +514,9 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                     );
                     dbgp!("[ STRAT] Old qty {}, New qty {}", _qty, sell_order.qty);
                     dbgp!("[ STRAT] send {:#?}", sell_order);
-                    self.strategy_sell_signal = Some(sell_order);
-                    send_sell_order = true;
+                    // self.strategy_sell_signal = Some(sell_order);
+                    // send_sell_order = true;
+                    unreachable!();
                 }
                 Some(Order {
                     id: _id,
@@ -551,7 +525,9 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                     qty: _qty,
                 }) => unreachable!(),
             }
-        }
+        } else if let Some(order) = self.active_sell_order {
+            let _ = ob.cancel_order(order.id);
+        };
         match (send_buy_order, send_sell_order) {
             (true, true) => {
                 if let Some(active_sell) = self.active_sell_order {
@@ -574,6 +550,83 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                 self.send_sell_order(ob);
             }
             (false, false) => {}
+        }
+    }
+
+    pub fn update(&mut self, exec_report: &ExecutionReport) {
+        if let Some(order) = self.active_buy_order {
+            if exec_report.taker_side == Side::Ask {
+                if let Some(key) = exec_report
+                    .filled_orders
+                    .iter()
+                    .position(|&o| o.0 == order.id)
+                {
+                    let trader_filled_qty = exec_report.filled_orders[key].1;
+                    let trader_filled_price = exec_report.filled_orders[key].2;
+                    dbgp!(
+                        "[TRADE ] qty = {:?}, price = {:?}",
+                        trader_filled_qty,
+                        trader_filled_price,
+                    );
+                    self.account.balance -= (trader_filled_qty * trader_filled_price) as i32;
+                    dbgp!("TRADER FILLED: {}", trader_filled_qty);
+                    if let Some(active_buy) = self.active_buy_order {
+                        if trader_filled_qty == active_buy.qty {
+                            self.active_buy_order = None;
+                            self.strategy.buy_price = None;
+                        } else {
+                            let qty = order.qty;
+                            // dbgp!("BEFORE FILLED: {:?}", self.active_buy_order);
+                            self.active_buy_order = Some(Order {
+                                id: order.id,
+                                side: Side::Bid,
+                                price: trader_filled_price,
+                                qty: qty - trader_filled_qty,
+                            });
+                            // dbgp!("AFTER FILLED: {:?}", self.active_buy_order);
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(order) = self.active_sell_order {
+            if let Some(key) = exec_report
+                .filled_orders
+                .iter()
+                .position(|&o| o.0 == order.id)
+            {
+                let trader_filled_qty = exec_report.filled_orders[key].1;
+                let trader_filled_price = exec_report.filled_orders[key].2;
+                dbgp!(
+                    "[TRADE ] qty = {:?}, price = {:?}",
+                    trader_filled_qty,
+                    trader_filled_price,
+                );
+                self.account.balance += (trader_filled_qty * trader_filled_price) as i32;
+                dbgp!("TRADER FILLED: {}", trader_filled_qty);
+                if let Some(active_sell) = self.active_sell_order {
+                    if trader_filled_qty == active_sell.qty {
+                        self.active_sell_order = None;
+                        self.strategy.sell_price = None;
+                    } else {
+                        let qty = order.qty;
+                        // dbgp!("BEFORE FILLED: {:?}", self.active_sell_order);
+                        self.active_sell_order = Some(Order {
+                            id: order.id,
+                            side: Side::Ask,
+                            price: trader_filled_price,
+                            qty: qty - trader_filled_qty,
+                        });
+                        // dbgp!("AFTER FILLED: {:?}", self.active_sell_order);
+                    }
+                }
+                // dbgp!(
+                //     "Active Orders {:?}, {:?}",
+                //     self.active_buy_order,
+                //     self.active_sell_order
+                // );
+            };
+            // std::mem::swap(&mut self.strategy.master_position, &mut new_position);
         }
     }
 }
