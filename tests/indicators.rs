@@ -1,4 +1,4 @@
-use orderbook_lib::{Midprice, Order, OrderBook, Side};
+use orderbook::{Midprice, Order, OrderBook, Side};
 use pretty_assertions::assert_eq;
 use rstest::rstest;
 

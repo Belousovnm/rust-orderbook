@@ -5,7 +5,7 @@ use crate::{
     account::TradingAccount,
     backtest::{FixPriceStrategy, Strategy, TestStrategy},
     dbgp,
-    orderbook::{ExecutionReport, Order, OrderBook, OrderStatus, Side},
+    matching_engine::{ExecutionReport, Order, OrderBook, OrderStatus, Side},
 };
 
 pub struct OrderManagementSystem<'a, S: Strategy> {
@@ -138,6 +138,7 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
             Err("No Limit left".to_owned())
         }
     }
+
     /// # Panics
     ///
     /// Will panick
@@ -466,8 +467,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                     );
                     dbgp!("[ STRAT] Old qty {}, New qty {}", _qty, buy_order.qty);
                     dbgp!("[ STRAT] send {:#?}", buy_order);
-                    // self.strategy_buy_signal = Some(buy_order);
-                    // send_buy_order = true;
+                    // FixPrice specific
                     unreachable!()
                 }
                 Some(Order {
@@ -514,8 +514,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                     );
                     dbgp!("[ STRAT] Old qty {}, New qty {}", _qty, sell_order.qty);
                     dbgp!("[ STRAT] send {:#?}", sell_order);
-                    // self.strategy_sell_signal = Some(sell_order);
-                    // send_sell_order = true;
+                    // FixPrice specific
                     unreachable!();
                 }
                 Some(Order {

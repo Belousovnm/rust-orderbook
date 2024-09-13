@@ -1,5 +1,4 @@
-use crate::orderbook::Order;
-use crate::orderbook::Side;
+use crate::matching_engine::{Order, Side};
 use crate::snap::Snap;
 use serde::de::Deserializer;
 use serde::de::Error;

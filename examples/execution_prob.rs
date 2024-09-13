@@ -1,4 +1,4 @@
-use orderbook_lib::{
+use orderbook::{
     account::TradingAccount, backtest::FixPriceStrategy, experiments::execution_flow,
     management::OrderManagementSystem, OrderBook,
 };

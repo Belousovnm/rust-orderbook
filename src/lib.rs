@@ -26,10 +26,10 @@ pub mod utils;
 
 mod event;
 mod indicators;
-mod orderbook;
+mod matching_engine;
 mod snap;
 
 pub use event::*;
 pub use indicators::*;
-pub use orderbook::*;
+pub use matching_engine::*;
 pub use snap::*;
