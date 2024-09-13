@@ -5,7 +5,7 @@ use crate::backtest::FixPriceStrategy;
 
 /// # Panics
 ///
-/// Will panic if File IO fails
+/// Will panic if file read fails
 pub fn execution_flow(
     oms: &mut OrderManagementSystem<FixPriceStrategy>,
     ob: &mut OrderBook,
@@ -45,12 +45,6 @@ pub fn execution_flow(
                 let exec_report = ob.add_limit_order(next_order);
                 dbgp!("{:#?}", exec_report);
                 oms.update(&exec_report);
-                if oms.active_buy_order.is_none() {
-                    oms.strategy.buy_price = None;
-                } else if oms.active_sell_order.is_none() {
-                    oms.strategy.sell_price = None;
-                };
-                oms.strategy.master_position = 0;
                 // Load next order
                 if let Some(Ok(order)) = trdr.next() {
                     next_order = order;

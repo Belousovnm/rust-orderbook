@@ -102,6 +102,6 @@ fn exec_report_test() {
         qty: 135,
         id: 1010,
     });
-    let filled_orders = vec![(222, 100, 99), (333, 10, 99), (444, 25, 99)];
+    let filled_orders = vec![(332, 100, 99), (333, 10, 99), (334, 25, 99)];
     assert_eq!(exec_report.filled_orders, filled_orders);
 }
