@@ -4,12 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "orderbook_lib"
+name = "orderbook"
 path = "src/lib.rs"
-
-# [[bin]]
-# name = "orderbook-bin"
-# path = "src/main.rs"
 
 [profile.release]
 lto = true

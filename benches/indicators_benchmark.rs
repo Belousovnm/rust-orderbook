@@ -1,7 +1,7 @@
 // only in nightly
 // #![feature(test)]
 //
-// use orderbook_lib::{midprice, utils::better_black_box};
+// use orderbook::{midprice, utils::better_black_box};
 // use std::hint::black_box;
 // extern crate test;
 //

@@ -1,6 +1,6 @@
 // #![feature(test)]
 // extern crate test;
-// use orderbook_lib::Snap;
+// use orderbook::Snap;
 // use std::hint::black_box;
 //
 // fn deserialize() -> Vec<Result<Snap, csv::Error>> {

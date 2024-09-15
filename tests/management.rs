@@ -1,6 +1,6 @@
 mod common;
 use common::{empty_ob, full_ob};
-use orderbook_lib::{
+use orderbook::{
     account::TradingAccount, backtest::TestStrategy, management::OrderManagementSystem, Midprice,
     Order, OrderBook, Side,
 };

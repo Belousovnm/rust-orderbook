@@ -480,7 +480,7 @@ impl OrderBook {
     pub fn process<S: Strategy>(&self, snap: Snap, oms: &mut OrderManagementSystem<S>) -> Self {
         let buy_offset = self.get_offset(oms, Side::Bid);
         let sell_offset = self.get_offset(oms, Side::Ask);
-        dbgp!("OFFSET {:?}", (buy_offset, sell_offset));
+        dbgp!("[OFFSET] {:?}", (buy_offset, sell_offset));
         let ob = next_snap(snap, (buy_offset, sell_offset));
         if let Some(id) = oms.get_order_id(Side::Bid) {
             if ob.get_order(id).is_none() {
