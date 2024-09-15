@@ -5,6 +5,7 @@ use crate::{
     account::TradingAccount,
     backtest::{FixPriceStrategy, Strategy, TestStrategy},
     dbgp,
+    experiments::Schedule,
     matching_engine::{ExecutionReport, Order, OrderBook, OrderStatus, Side},
 };
 
@@ -552,7 +553,12 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
         }
     }
 
-    pub fn update(&mut self, exec_report: &ExecutionReport) {
+    pub fn update(
+        &mut self,
+        exec_report: &ExecutionReport,
+        exec_epoch: &u64,
+        schedule: &mut Schedule,
+    ) {
         if let Some(order) = self.active_buy_order {
             if exec_report.taker_side == Side::Ask {
                 if let Some(key) = exec_report
@@ -573,6 +579,12 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                         if trader_filled_qty == active_buy.qty {
                             self.active_buy_order = None;
                             self.strategy.buy_price = None;
+                            dbgp!(
+                                "[  DB  ] epoch_start={} epoch_end={}",
+                                active_buy.id,
+                                exec_epoch
+                            );
+                            *schedule = Schedule::new();
                         } else {
                             let qty = order.qty;
                             // dbgp!("BEFORE FILLED: {:?}", self.active_buy_order);
