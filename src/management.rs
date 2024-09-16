@@ -30,6 +30,15 @@ impl<'a, S: Strategy> OrderManagementSystem<'a, S> {
         }
     }
 
+    pub fn get_order_id(&self, side: Side) -> Option<u64> {
+        match side {
+            Side::Bid => self.active_buy_order.map(|order| order.id),
+            Side::Ask => self.active_sell_order.map(|order| order.id),
+        }
+    }
+}
+
+impl<'a> OrderManagementSystem<'a, TestStrategy> {
     fn send_buy_order(&mut self, ob: &mut OrderBook) {
         let exec_report;
         if let Some(order) = self.active_buy_order {
@@ -44,6 +53,9 @@ impl<'a, S: Strategy> OrderManagementSystem<'a, S> {
         }
         if exec_report.status == OrderStatus::Created {
             self.active_buy_order = self.strategy_buy_signal;
+        } else {
+            // Only maker orders allowed
+            unreachable!();
         }
     }
 
@@ -60,18 +72,11 @@ impl<'a, S: Strategy> OrderManagementSystem<'a, S> {
         }
         if exec_report.status == OrderStatus::Created {
             self.active_sell_order = self.strategy_sell_signal;
+        } else {
+            // Only maker orders allowed
+            unreachable!();
         }
     }
-
-    pub fn get_order_id(&self, side: Side) -> Option<u64> {
-        match side {
-            Side::Bid => self.active_buy_order.map(|order| order.id),
-            Side::Ask => self.active_sell_order.map(|order| order.id),
-        }
-    }
-}
-
-impl<'a> OrderManagementSystem<'a, TestStrategy> {
     /// # Errors
     ///
     /// Will return `Err` if either `Indicator` fails to provide reference price
@@ -355,6 +360,56 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
 }
 
 impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
+    fn send_buy_order(&mut self, ob: &mut OrderBook, epoch: u64) {
+        let exec_report;
+        if let Some(order) = self.active_buy_order {
+            dbgp!("{} {:?}", order.id, ob.get_order(order.id));
+            exec_report = ob
+                .amend_limit_order(order.id, self.strategy_buy_signal.unwrap())
+                .unwrap();
+            dbgp!("Amend buy order {:?}", exec_report);
+        } else {
+            exec_report = ob.add_limit_order(self.strategy_buy_signal.unwrap());
+            dbgp!("New buy order {:?}", exec_report);
+        }
+        if exec_report.status == OrderStatus::Filled {
+            println!(
+                "[  DB  ] (send) epoch_start={} epoch_end={} delta={}us censored={}",
+                self.strategy_buy_signal.unwrap().id,
+                epoch,
+                (epoch / 1000 - (self.strategy_buy_signal.unwrap().id - 3) / 1000),
+                0
+            );
+            self.lock_release();
+        } else {
+            self.active_buy_order = self.strategy_buy_signal;
+        }
+    }
+
+    fn send_sell_order(&mut self, ob: &mut OrderBook, epoch: u64) {
+        let exec_report;
+        if let Some(order) = self.active_sell_order {
+            exec_report = ob
+                .amend_limit_order(order.id, self.strategy_sell_signal.unwrap())
+                .unwrap();
+            dbgp!("Amend buy order {:?}", exec_report);
+        } else {
+            exec_report = ob.add_limit_order(self.strategy_sell_signal.unwrap());
+            dbgp!("New buy order {:?}", exec_report);
+        }
+        if exec_report.status == OrderStatus::Filled {
+            println!(
+                "[  DB  ] (send) epoch_start={} epoch_end={} delta={}us censored={}",
+                self.strategy_buy_signal.unwrap().id,
+                epoch,
+                (epoch / 1000 - (self.strategy_buy_signal.unwrap().id - 3) / 1000),
+                0
+            );
+            self.lock_release();
+        } else {
+            self.active_buy_order = self.strategy_buy_signal;
+        }
+    }
     /// # Errors
     ///
     /// Will return `Err` if either reference price
@@ -362,12 +417,11 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
     pub fn lock_bid_price(&self, bbo: Option<(u32, u32)>) -> Result<u32, String> {
         let bid_price = match self.strategy.buy_price {
             None => {
-                bbo.ok_or_else(|| "Missing ref price".to_string())?.0
-                    + u32::from(
-                        self.strategy
-                            .buy_tick_criterion
-                            .ok_or_else(|| "Missing buy criterion".to_string())?,
-                    )
+                (bbo.ok_or_else(|| "Missing ref price".to_string())?.0 as i32
+                    + self
+                        .strategy
+                        .buy_tick_criterion
+                        .ok_or_else(|| "Missing buy criterion".to_string())?) as u32
             }
             Some(price) => price,
         };
@@ -381,17 +435,22 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
     pub fn lock_ask_price(&self, bbo: Option<(u32, u32)>) -> Result<u32, String> {
         let ask_price = match self.strategy.sell_price {
             None => {
-                bbo.ok_or_else(|| "Missing ref price".to_owned())?.1
-                    + u32::from(
-                        self.strategy
-                            .sell_tick_criterion
-                            .ok_or_else(|| "Missing sell criterion".to_string())?,
-                    )
+                (bbo.ok_or_else(|| "Missing ref price".to_string())?.1 as i32
+                    + self
+                        .strategy
+                        .sell_tick_criterion
+                        .ok_or_else(|| "Missing sell criterion".to_string())?)
+                    as u32
             }
 
             Some(price) => price,
         };
         Ok(ask_price)
+    }
+
+    pub fn lock_release(&mut self) {
+        self.strategy.buy_price = None;
+        self.strategy.sell_price = None;
     }
 
     /// # Errors
@@ -434,7 +493,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
     pub fn send_orders(
         &mut self,
         ob: &mut OrderBook,
-        _m: Option<(u32, u32)>,
+        epoch: u64,
         trader_buy_id: u64,
         trader_sell_id: u64,
     ) {
@@ -542,22 +601,22 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
             (true, true) => {
                 if let Some(active_sell) = self.active_sell_order {
                     if self.strategy_buy_signal.unwrap().price < active_sell.price {
-                        self.send_buy_order(ob);
-                        self.send_sell_order(ob);
+                        self.send_buy_order(ob, epoch);
+                        self.send_sell_order(ob, epoch);
                     } else {
-                        self.send_sell_order(ob);
-                        self.send_buy_order(ob);
+                        self.send_sell_order(ob, epoch);
+                        self.send_buy_order(ob, epoch);
                     }
                 } else {
-                    self.send_buy_order(ob);
-                    self.send_sell_order(ob);
+                    self.send_buy_order(ob, epoch);
+                    self.send_sell_order(ob, epoch);
                 }
             }
             (true, false) => {
-                self.send_buy_order(ob);
+                self.send_buy_order(ob, epoch);
             }
             (false, true) => {
-                self.send_sell_order(ob);
+                self.send_sell_order(ob, epoch);
             }
             (false, false) => {}
         }
@@ -596,6 +655,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                                 (exec_epoch / 1000 - (active_buy.id - 3) / 1000),
                                 0
                             );
+                            self.lock_release();
                             *schedule = Schedule::new();
                         } else {
                             let qty = order.qty;

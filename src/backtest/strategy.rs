@@ -54,6 +54,6 @@ pub struct FixPriceStrategy {
     pub qty: u32,
     pub buy_price: Option<u32>,
     pub sell_price: Option<u32>,
-    pub buy_tick_criterion: Option<u8>,
-    pub sell_tick_criterion: Option<u8>,
+    pub buy_tick_criterion: Option<i32>,
+    pub sell_tick_criterion: Option<i32>,
 }
