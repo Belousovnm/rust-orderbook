@@ -1,6 +1,9 @@
-use crate::experiments::{Ready, Schedule};
-use crate::BestBidOffer;
-use crate::{dbgp, management::OrderManagementSystem, Order, OrderBook, Snap};
+use crate::{
+    dbgp,
+    experiments::{Ready, Schedule},
+    management::OrderManagementSystem,
+    BestBidOffer, Order, OrderBook, Snap,
+};
 
 use crate::backtest::FixPriceStrategy;
 
@@ -18,7 +21,10 @@ pub fn execution_flow(
     let mut srdr = snap_reader.deserialize::<Snap>();
     let mut trdr = trade_reader.deserialize::<Order>();
     let mut epoch = 0;
-    let mut schedule = Schedule::new();
+    let mut schedule = Schedule {
+        cooldown: 0,
+        counter: 0,
+    };
     let mut trader_buy_id;
     let mut trader_sell_id;
     let mut next_order = Order::default();
@@ -59,30 +65,51 @@ pub fn execution_flow(
             } else if epoch < next_order.id {
                 // Load next snap
                 dbgp!("[ EPCH ] snap {:?}", epoch);
-                if let Some(order) = oms.active_buy_order.or(oms.active_sell_order) {
-                    // 10s
-                    if order.id >= epoch - 10_000_000_000 {
-                        oms.cancel_all_orders(ob);
-                    }
-                }
-                *ob = ob.process(snap, oms);
                 // Trader's move
-                let bbo = BestBidOffer::evaluate(&ob.get_raw(oms));
-                // Lock new price after cooldown
-                match schedule.ready() {
-                    Ready::Yes => {
-                        schedule.set_counter(0);
-                        oms.strategy.buy_price = oms.lock_bid_price(bbo).ok();
-                        oms.strategy.sell_price = oms.lock_ask_price(bbo).ok();
-                        dbgp!("[ LOCK ] BID: {:?}", oms.strategy.buy_price);
-                        dbgp!("[ LOCK ] ASK: {:?}", oms.strategy.sell_price);
+                // Experiment is live
+                dbgp!(
+                    "cooldown={}, counter={}",
+                    schedule.cooldown,
+                    schedule.counter
+                );
+                // Active orders
+                if let Some(order) = oms.active_buy_order.or(oms.active_sell_order) {
+                    // 10s censoring
+                    if epoch - order.id >= 10_000_000_000 {
+                        oms.cancel_all_orders(ob);
+                        dbgp!(
+                            "[  DB  ] epoch_start={} epoch_end={} censored={}",
+                            order.id,
+                            epoch,
+                            1
+                        );
+                        schedule = Schedule::new();
+                    } else {
+                        *ob = ob.process(snap, oms);
+                        trader_buy_id = epoch + 3;
+                        trader_sell_id = epoch + 7;
+                        oms.send_orders(ob, None, trader_buy_id, trader_sell_id);
                     }
-                    Ready::No => schedule.incr_counter(),
-                };
-
-                trader_buy_id = 10 * epoch + 3;
-                trader_sell_id = 10 * epoch + 7;
-                oms.send_orders(ob, bbo, trader_buy_id, trader_sell_id);
+                // No active orders
+                } else {
+                    match schedule.ready() {
+                        Ready::Yes => {
+                            // Lock new price after cooldown
+                            dbgp!("!!!! READY !!!!!");
+                            schedule.set_counter(0);
+                            *ob = ob.process(snap, oms);
+                            let bbo = BestBidOffer::evaluate(&ob.get_raw(oms));
+                            oms.strategy.buy_price = oms.lock_bid_price(bbo).ok();
+                            oms.strategy.sell_price = oms.lock_ask_price(bbo).ok();
+                            dbgp!("[ LOCK ] BID: {:?}", oms.strategy.buy_price);
+                            dbgp!("[ LOCK ] ASK: {:?}", oms.strategy.sell_price);
+                            trader_buy_id = epoch + 3;
+                            trader_sell_id = epoch + 7;
+                            oms.send_orders(ob, None, trader_buy_id, trader_sell_id);
+                        }
+                        Ready::No => schedule.incr_counter(),
+                    };
+                }
                 // dbgp!("{:?}", ob.get_order(oms.active_buy_order));
                 // dbgp!("{:?}", ob.get_order(oms.active_sell_order));
                 break;

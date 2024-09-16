@@ -205,7 +205,7 @@ mod tests {
     use super::*;
     use crate::{
         account::TradingAccount, backtest::TestStrategy, management::OrderManagementSystem,
-        orderbook::Side,
+        matching_engine::Side,
     };
     use pretty_assertions::assert_eq;
 

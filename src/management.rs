@@ -357,12 +357,17 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
 impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
     /// # Errors
     ///
-    /// Will return `Err` if `get_bbo` return `Err`
+    /// Will return `Err` if either reference price
+    /// or criterion are None
     pub fn lock_bid_price(&self, bbo: Option<(u32, u32)>) -> Result<u32, String> {
         let bid_price = match self.strategy.buy_price {
             None => {
-                bbo.ok_or_else(|| "Missing Ref Price".to_owned())?.0
-                    + u32::from(self.strategy.buy_tick_criterion)
+                bbo.ok_or_else(|| "Missing ref price".to_string())?.0
+                    + u32::from(
+                        self.strategy
+                            .buy_tick_criterion
+                            .ok_or_else(|| "Missing buy criterion".to_string())?,
+                    )
             }
             Some(price) => price,
         };
@@ -371,12 +376,17 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
 
     /// # Errors
     ///
-    /// Will return `Err` if `get_bbo` returns `Err`
+    /// Will return `Err` if either reference price
+    /// or criterion are None
     pub fn lock_ask_price(&self, bbo: Option<(u32, u32)>) -> Result<u32, String> {
         let ask_price = match self.strategy.sell_price {
             None => {
-                bbo.ok_or_else(|| "Missing Ref Price".to_owned())?.1
-                    + u32::from(self.strategy.sell_tick_criterion)
+                bbo.ok_or_else(|| "Missing ref price".to_owned())?.1
+                    + u32::from(
+                        self.strategy
+                            .sell_tick_criterion
+                            .ok_or_else(|| "Missing sell criterion".to_string())?,
+                    )
             }
 
             Some(price) => price,
@@ -580,9 +590,10 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                             self.active_buy_order = None;
                             self.strategy.buy_price = None;
                             dbgp!(
-                                "[  DB  ] epoch_start={} epoch_end={}",
+                                "[  DB  ] epoch_start={} epoch_end={} censored={}",
                                 active_buy.id,
-                                exec_epoch
+                                exec_epoch,
+                                0
                             );
                             *schedule = Schedule::new();
                         } else {

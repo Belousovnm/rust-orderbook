@@ -1,4 +1,5 @@
 use rand::Rng;
+
 #[derive(Eq, PartialEq)]
 pub enum Ready {
     Yes,
@@ -6,8 +7,8 @@ pub enum Ready {
 }
 
 pub struct Schedule {
-    counter: u32,
-    cooldown: u32,
+    pub counter: u32,
+    pub cooldown: u32,
 }
 
 impl Default for Schedule {
