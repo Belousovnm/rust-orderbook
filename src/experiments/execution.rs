@@ -78,15 +78,16 @@ pub fn execution_flow(
                     if epoch - order.id >= 10_000_000_000 {
                         oms.cancel_all_orders(ob);
                         println!(
-                            "[  DB  ] epoch_start={} epoch_end={} delta ={}us censored={}",
+                            "[  DB  ] epoch_start={} epoch_end={} delta={}us censored={}",
                             order.id, epoch, 10_000_000, 1
                         );
+                        oms.lock_release();
                         schedule = Schedule::new();
                     } else {
                         *ob = ob.process(snap, oms);
                         trader_buy_id = epoch + 3;
                         trader_sell_id = epoch + 7;
-                        oms.send_orders(ob, None, trader_buy_id, trader_sell_id);
+                        oms.send_orders(ob, epoch, trader_buy_id, trader_sell_id);
                     }
                 // No active orders
                 } else {
@@ -96,14 +97,16 @@ pub fn execution_flow(
                             dbgp!("!!!! READY !!!!!");
                             schedule.set_counter(0);
                             *ob = ob.process(snap, oms);
-                            let bbo = BestBidOffer::evaluate(&ob.get_raw(oms));
+                            let bbo = BestBidOffer::evaluate(ob);
+                            dbgp!("bbo = {:?}", bbo);
                             oms.strategy.buy_price = oms.lock_bid_price(bbo).ok();
                             oms.strategy.sell_price = oms.lock_ask_price(bbo).ok();
+                            // lock release !!!
                             dbgp!("[ LOCK ] BID: {:?}", oms.strategy.buy_price);
                             dbgp!("[ LOCK ] ASK: {:?}", oms.strategy.sell_price);
                             trader_buy_id = epoch + 3;
                             trader_sell_id = epoch + 7;
-                            oms.send_orders(ob, None, trader_buy_id, trader_sell_id);
+                            oms.send_orders(ob, epoch, trader_buy_id, trader_sell_id);
                         }
                         Ready::No => schedule.incr_counter(),
                     };
