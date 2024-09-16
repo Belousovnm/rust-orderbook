@@ -77,11 +77,9 @@ pub fn execution_flow(
                     // 10s censoring
                     if epoch - order.id >= 10_000_000_000 {
                         oms.cancel_all_orders(ob);
-                        dbgp!(
-                            "[  DB  ] epoch_start={} epoch_end={} censored={}",
-                            order.id,
-                            epoch,
-                            1
+                        println!(
+                            "[  DB  ] epoch_start={} epoch_end={} delta ={}us censored={}",
+                            order.id, epoch, 10_000_000, 1
                         );
                         schedule = Schedule::new();
                     } else {

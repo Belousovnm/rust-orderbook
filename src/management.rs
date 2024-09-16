@@ -589,10 +589,11 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                         if trader_filled_qty == active_buy.qty {
                             self.active_buy_order = None;
                             self.strategy.buy_price = None;
-                            dbgp!(
-                                "[  DB  ] epoch_start={} epoch_end={} censored={}",
+                            println!(
+                                "[  DB  ] epoch_start={} epoch_end={} delta={}us censored={}",
                                 active_buy.id,
                                 exec_epoch,
+                                (exec_epoch / 1000 - (active_buy.id - 3) / 1000),
                                 0
                             );
                             *schedule = Schedule::new();
