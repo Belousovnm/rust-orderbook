@@ -1,4 +1,6 @@
-use crate::{dbgp, management::OrderManagementSystem, Midprice, Order, OrderBook, Snap};
+use crate::{
+    dbgp, management::OrderManagementSystem, place_body, Midprice, Order, OrderBook, Snap,
+};
 use readable::num::Unsigned;
 use std::fmt;
 
@@ -49,7 +51,7 @@ pub fn strategy_flow(
     if let Some(Ok(first_snap)) = srdr.next() {
         epoch = first_snap.exch_epoch;
         dbgp!("[ EPCH ] snap {:?}", epoch);
-        *ob = ob.process(first_snap, oms);
+        *ob = ob.process(first_snap, oms, place_body(false));
     }
 
     // Skip all trades that occured before the first snapshot
@@ -87,7 +89,7 @@ pub fn strategy_flow(
             } else if epoch < next_order.id {
                 // Load next snap
                 dbgp!("[ EPCH ] snap {:?}", epoch);
-                *ob = ob.process(snap, oms);
+                *ob = ob.process(snap, oms, place_body(false));
                 // Trader's move
                 let m = Midprice::evaluate(&ob.get_raw(oms));
                 trader_buy_id = 10 * epoch + 3;

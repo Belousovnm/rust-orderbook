@@ -1,6 +1,8 @@
+use crate::backtest::FixPriceStrategy;
 use crate::{
     backtest::Strategy,
     dbgp,
+    experiments::Schedule,
     management::OrderManagementSystem,
     snap::{next_snap, Snap},
 };
@@ -32,7 +34,8 @@ pub enum OrderStatus {
 #[derive(Debug, Default)]
 pub struct ExecutionReport {
     // Orders filled (id, qty, price)
-    pub taker_side: Side,
+    pub own_id: u64,
+    pub own_side: Side,
     pub filled_orders: Vec<(u64, u32, u32)>,
     pub remaining_qty: u32,
     pub status: OrderStatus,
@@ -41,7 +44,8 @@ pub struct ExecutionReport {
 impl ExecutionReport {
     pub const fn new() -> Self {
         Self {
-            taker_side: Side::Bid,
+            own_id: 0,
+            own_side: Side::Bid,
             filled_orders: Vec::new(),
             remaining_qty: u32::MAX,
             status: OrderStatus::Uninitialized,
@@ -275,20 +279,16 @@ impl OrderBook {
     }
 
     pub fn add_limit_order(&mut self, order: Order) -> ExecutionReport {
-        let order_qty = order.qty;
-        let order_id = order.id;
-        let side = order.side;
-        let price = order.price;
-        let mut remaining_order_qty = order_qty;
+        let mut remaining_order_qty = order.qty;
         dbgp!(
             "[ INFO ] Booked {:?} {}@{} id={}",
-            side,
+            order.side,
             remaining_order_qty,
-            price,
-            order_id,
+            order.price,
+            order.id,
         );
         let mut exec_report = ExecutionReport::new();
-        match side {
+        match order.side {
             Side::Bid => {
                 let askbook = &mut self.ask_book;
                 let price_map = &mut askbook.price_map;
@@ -296,7 +296,7 @@ impl OrderBook {
                 let mut price_map_iter = price_map.iter();
 
                 if let Some((mut x, _)) = price_map_iter.next() {
-                    while price >= *x {
+                    while order.price >= *x {
                         let curr_level = price_map[x];
                         let (id_vec, qty_vec) = Self::match_at_price_level(
                             &mut price_levels[curr_level],
@@ -322,7 +322,7 @@ impl OrderBook {
                 let mut price_map_iter = price_map.iter();
 
                 if let Some((mut x, _)) = price_map_iter.next_back() {
-                    while price <= *x {
+                    while order.price <= *x {
                         let curr_level = price_map[x];
                         let (id_vec, qty_vec) = Self::match_at_price_level(
                             &mut price_levels[curr_level],
@@ -343,33 +343,46 @@ impl OrderBook {
             }
         }
         let status = match remaining_order_qty {
-            qty if qty == order_qty => {
-                self.create_new_limit_order(side, price, remaining_order_qty, Some(order_id));
+            qty if qty == order.qty => {
+                self.create_new_limit_order(
+                    order.side,
+                    order.price,
+                    remaining_order_qty,
+                    Some(order.id),
+                );
                 OrderStatus::Created
             }
 
             qty if qty > 0 => {
-                self.create_new_limit_order(side, price, remaining_order_qty, Some(order_id));
+                self.create_new_limit_order(
+                    order.side,
+                    order.price,
+                    remaining_order_qty,
+                    Some(order.id),
+                );
                 OrderStatus::PartiallyFilled
             }
             0 => OrderStatus::Filled,
             _ => unreachable!(),
         };
 
-        if side == Side::Bid {
-            if self.best_bid_price.is_none() | self.best_bid_price.is_some_and(|b| price > b) {
+        if order.side == Side::Bid {
+            if self.best_bid_price.is_none() | self.best_bid_price.is_some_and(|b| order.price > b)
+            {
                 self.update_bbo();
             }
-        } else if side == Side::Ask
-            && self.best_offer_price.is_none() | self.best_offer_price.is_some_and(|a| price < a)
+        } else if order.side == Side::Ask
+            && self.best_offer_price.is_none()
+                | self.best_offer_price.is_some_and(|a| order.price < a)
         {
             self.update_bbo();
         }
-        exec_report.taker_side = side;
+        exec_report.own_id = order.id;
+        exec_report.own_side = order.side;
         exec_report.status = status;
         exec_report.remaining_qty = remaining_order_qty;
-        if order_qty == 0 {
-            dbgp!("WTF ORDER QTY 0! IN ORDER {}", order_id);
+        if order.qty == 0 {
+            dbgp!("WTF ORDER QTY 0! IN ORDER {}", order.id);
         }
         exec_report
     }
@@ -477,11 +490,17 @@ impl OrderBook {
         raw_ob
     }
 
-    pub fn process<S: Strategy>(&self, snap: Snap, oms: &mut OrderManagementSystem<S>) -> Self {
+    pub fn process<S: Strategy>(
+        &self,
+        snap: Snap,
+        oms: &mut OrderManagementSystem<S>,
+        body_f: impl Fn(&mut Self, Order) -> ExecutionReport,
+    ) -> Self {
         let buy_offset = self.get_offset(oms, Side::Bid);
         let sell_offset = self.get_offset(oms, Side::Ask);
         dbgp!("[OFFSET] {:?}", (buy_offset, sell_offset));
-        let ob = next_snap(snap, (buy_offset, sell_offset));
+        let (ob, _exec_report_bid, _exec_report_ask) =
+            next_snap(snap, (buy_offset, sell_offset), body_f);
         if let Some(id) = oms.get_order_id(Side::Bid) {
             if ob.get_order(id).is_none() {
                 oms.active_buy_order = None;
@@ -490,6 +509,47 @@ impl OrderBook {
         if let Some(id) = oms.get_order_id(Side::Ask) {
             if ob.get_order(id).is_none() {
                 oms.active_sell_order = None;
+            }
+        }
+        ob
+    }
+}
+
+impl OrderBook {
+    pub fn process_w_takers(
+        &self,
+        snap: Snap,
+        oms: &mut OrderManagementSystem<FixPriceStrategy>,
+        body_f: impl Fn(&mut Self, Order) -> ExecutionReport,
+    ) -> Self {
+        let exch_epoch = snap.exch_epoch;
+        let buy_offset = self.get_offset(oms, Side::Bid);
+        let sell_offset = self.get_offset(oms, Side::Ask);
+        dbgp!("[OFFSET] {:?}", (buy_offset, sell_offset));
+        let (ob, exec_report_bid, _exec_report_ask) =
+            next_snap(snap, (buy_offset, sell_offset), body_f);
+        if let Some(id) = oms.get_order_id(Side::Bid) {
+            if ob.get_order(id).is_none() {
+                oms.active_buy_order = None;
+            }
+        }
+        if let Some(id) = oms.get_order_id(Side::Ask) {
+            if ob.get_order(id).is_none() {
+                oms.active_sell_order = None;
+            }
+        }
+        if let Some(exec_report) = exec_report_bid {
+            if exec_report.status == OrderStatus::Filled {
+                oms.strategy.buy_price = None;
+                println!(
+                    "[--DB--] epoch_start={} epoch_end={} delta={}us censored={}",
+                    exch_epoch,
+                    exec_report.own_id,
+                    (exch_epoch + 3 - exec_report.own_id) / 1000,
+                    0
+                );
+                oms.lock_release();
+                oms.schedule = Schedule::new();
             }
         }
         ob

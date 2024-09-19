@@ -1,7 +1,7 @@
 mod common;
 use orderbook::{
-    account::TradingAccount, backtest::TestStrategy, management::OrderManagementSystem, LimitOrder,
-    Order, OrderBook, Side, Snap,
+    account::TradingAccount, backtest::TestStrategy, management::OrderManagementSystem, place_body,
+    LimitOrder, Order, OrderBook, Side, Snap,
 };
 use pretty_assertions::assert_eq;
 use rstest::{fixture, rstest};
@@ -31,7 +31,7 @@ fn deser_to_ob(deser: Snap) {
     let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
 
     let snap = deser;
-    ob = ob.process(snap, oms);
+    ob = ob.process(snap, oms, place_body(false));
     assert_eq!(ob.get_bbo(), Ok((10, 11, 1)))
 }
 
@@ -61,7 +61,7 @@ fn exec_report_test() {
             },
         ],
     };
-    ob = ob.process(snap, oms);
+    ob = ob.process(snap, oms, place_body(false));
     // if matches! {fr.status, OrderStatus::Filled} {
     //     dbgp!("{:#?}, avg_fill_price {}", fr, fr.avg_fill_price());
     // }
@@ -94,7 +94,7 @@ fn exec_report_test() {
             },
         ],
     };
-    ob = ob.process(snap, oms);
+    ob = ob.process(snap, oms, place_body(false));
 
     let exec_report = ob.add_limit_order(Order {
         side: Side::Bid,

@@ -8,7 +8,7 @@ fn main() {
     let orders_path = "data/orders.csv";
     let mut ob = OrderBook::default();
     let mut strat = FixPriceStrategy {
-        buy_tick_criterion: Some(0),
+        buy_tick_criterion: Some(100),
         sell_tick_criterion: None,
         qty: 1,
         ..Default::default()

@@ -1,8 +1,6 @@
 use crate::{
-    dbgp,
-    experiments::{Ready, Schedule},
-    management::OrderManagementSystem,
-    BestBidOffer, Order, OrderBook, Snap,
+    dbgp, experiments::Ready, management::OrderManagementSystem, place_body, BestBidOffer, Order,
+    OrderBook, Snap,
 };
 
 use crate::backtest::FixPriceStrategy;
@@ -21,10 +19,6 @@ pub fn execution_flow(
     let mut srdr = snap_reader.deserialize::<Snap>();
     let mut trdr = trade_reader.deserialize::<Order>();
     let mut epoch = 0;
-    let mut schedule = Schedule {
-        cooldown: 0,
-        counter: 0,
-    };
     let mut trader_buy_id;
     let mut trader_sell_id;
     let mut next_order = Order::default();
@@ -33,7 +27,7 @@ pub fn execution_flow(
     if let Some(Ok(first_snap)) = srdr.next() {
         epoch = first_snap.exch_epoch;
         dbgp!("[ EPCH ] snap {:?}", epoch);
-        *ob = ob.process(first_snap, oms);
+        *ob = ob.process(first_snap, oms, place_body(true));
     }
 
     // Skip all trades that occured before the first snapshot
@@ -53,7 +47,7 @@ pub fn execution_flow(
                 let exec_report = ob.add_limit_order(next_order);
                 dbgp!("{:#?}", exec_report);
                 // Updates active order when filled, releases price lock, restarts scheduler
-                oms.update(&exec_report, &next_order.id, &mut schedule);
+                oms.update(&exec_report);
                 // Load next order
                 if let Some(Ok(order)) = trdr.next() {
                     next_order = order;
@@ -69,8 +63,8 @@ pub fn execution_flow(
                 // Experiment is live
                 dbgp!(
                     "cooldown={}, counter={}",
-                    schedule.cooldown,
-                    schedule.counter
+                    oms.schedule.cooldown,
+                    oms.schedule.counter
                 );
                 // Active orders
                 if let Some(order) = oms.active_buy_order.or(oms.active_sell_order) {
@@ -82,33 +76,32 @@ pub fn execution_flow(
                             order.id, epoch, 10_000_000, 1
                         );
                         oms.lock_release();
-                        schedule = Schedule::new();
+                        // schedule = Schedule::new();
                     } else {
-                        *ob = ob.process(snap, oms);
+                        *ob = ob.process_w_takers(snap, oms, place_body(true));
                         trader_buy_id = epoch + 3;
                         trader_sell_id = epoch + 7;
                         oms.send_orders(ob, epoch, trader_buy_id, trader_sell_id);
                     }
                 // No active orders
                 } else {
-                    match schedule.ready() {
+                    match oms.schedule.ready() {
                         Ready::Yes => {
                             // Lock new price after cooldown
                             dbgp!("!!!! READY !!!!!");
-                            schedule.set_counter(0);
-                            *ob = ob.process(snap, oms);
+                            oms.schedule.set_counter(0);
+                            *ob = ob.process_w_takers(snap, oms, place_body(true));
                             let bbo = BestBidOffer::evaluate(ob);
                             dbgp!("bbo = {:?}", bbo);
                             oms.strategy.buy_price = oms.lock_bid_price(bbo).ok();
                             oms.strategy.sell_price = oms.lock_ask_price(bbo).ok();
-                            // lock release !!!
                             dbgp!("[ LOCK ] BID: {:?}", oms.strategy.buy_price);
                             dbgp!("[ LOCK ] ASK: {:?}", oms.strategy.sell_price);
                             trader_buy_id = epoch + 3;
                             trader_sell_id = epoch + 7;
                             oms.send_orders(ob, epoch, trader_buy_id, trader_sell_id);
                         }
-                        Ready::No => schedule.incr_counter(),
+                        Ready::No => oms.schedule.incr_counter(),
                     };
                 }
                 // dbgp!("{:?}", ob.get_order(oms.active_buy_order));

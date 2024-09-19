@@ -16,6 +16,7 @@ pub struct OrderManagementSystem<'a, S: Strategy> {
     pub active_sell_order: Option<Order>,
     pub strategy_buy_signal: Option<Order>,
     pub strategy_sell_signal: Option<Order>,
+    pub schedule: Schedule,
 }
 
 impl<'a, S: Strategy> OrderManagementSystem<'a, S> {
@@ -27,6 +28,7 @@ impl<'a, S: Strategy> OrderManagementSystem<'a, S> {
             active_sell_order: None,
             strategy_buy_signal: None,
             strategy_sell_signal: None,
+            schedule: Schedule::default(),
         }
     }
 
@@ -281,7 +283,7 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
     }
     pub fn update(&mut self, exec_report: &ExecutionReport) {
         if let Some(order) = self.active_buy_order {
-            if exec_report.taker_side == Side::Ask {
+            if exec_report.own_side == Side::Ask {
                 if let Some(key) = exec_report
                     .filled_orders
                     .iter()
@@ -372,15 +374,17 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
             exec_report = ob.add_limit_order(self.strategy_buy_signal.unwrap());
             dbgp!("New buy order {:?}", exec_report);
         }
+        dbgp!("WTF {}", self.strategy_buy_signal.unwrap().id);
         if exec_report.status == OrderStatus::Filled {
             println!(
                 "[  DB  ] (send) epoch_start={} epoch_end={} delta={}us censored={}",
-                self.strategy_buy_signal.unwrap().id,
+                exec_report.own_id,
                 epoch,
-                (epoch / 1000 - (self.strategy_buy_signal.unwrap().id - 3) / 1000),
+                (epoch + 3 - exec_report.own_id) / 1000,
                 0
             );
             self.lock_release();
+            self.schedule = Schedule::new();
         } else {
             self.active_buy_order = self.strategy_buy_signal;
         }
@@ -400,14 +404,15 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
         if exec_report.status == OrderStatus::Filled {
             println!(
                 "[  DB  ] (send) epoch_start={} epoch_end={} delta={}us censored={}",
-                self.strategy_buy_signal.unwrap().id,
+                exec_report.own_id,
                 epoch,
-                (epoch / 1000 - (self.strategy_buy_signal.unwrap().id - 3) / 1000),
+                (epoch + 7 - exec_report.own_id) / 1000,
                 0
             );
             self.lock_release();
+            self.schedule = Schedule::new();
         } else {
-            self.active_buy_order = self.strategy_buy_signal;
+            self.active_sell_order = self.strategy_sell_signal;
         }
     }
     /// # Errors
@@ -622,14 +627,10 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
         }
     }
 
-    pub fn update(
-        &mut self,
-        exec_report: &ExecutionReport,
-        exec_epoch: &u64,
-        schedule: &mut Schedule,
-    ) {
+    pub fn update(&mut self, exec_report: &ExecutionReport) {
+        //Filled as Maker
         if let Some(order) = self.active_buy_order {
-            if exec_report.taker_side == Side::Ask {
+            if exec_report.own_side == Side::Ask {
                 if let Some(key) = exec_report
                     .filled_orders
                     .iter()
@@ -651,12 +652,12 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                             println!(
                                 "[  DB  ] epoch_start={} epoch_end={} delta={}us censored={}",
                                 active_buy.id,
-                                exec_epoch,
-                                (exec_epoch / 1000 - (active_buy.id - 3) / 1000),
+                                exec_report.own_id,
+                                (exec_report.own_id - active_buy.id + 3) / 1000,
                                 0
                             );
                             self.lock_release();
-                            *schedule = Schedule::new();
+                            self.schedule = Schedule::new();
                         } else {
                             let qty = order.qty;
                             // dbgp!("BEFORE FILLED: {:?}", self.active_buy_order);
@@ -691,6 +692,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                     if trader_filled_qty == active_sell.qty {
                         self.active_sell_order = None;
                         self.strategy.sell_price = None;
+                        // todo!
                     } else {
                         let qty = order.qty;
                         // dbgp!("BEFORE FILLED: {:?}", self.active_sell_order);

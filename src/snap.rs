@@ -3,6 +3,8 @@ use crate::{
     dbgp,
     event::LimitOrder,
     matching_engine::{Order, OrderBook, Side},
+    ExecutionReport,
+    //OrderStatus
 };
 
 #[derive(Debug, Default)]
@@ -47,8 +49,36 @@ fn place_order_from_snap(snap: Snap, ob: &mut OrderBook) {
     }
 }
 
+pub fn place_body(allow_fill: bool) -> impl Fn(&mut OrderBook, Order) -> ExecutionReport {
+    move |ob: &mut OrderBook, order: Order| {
+        let mut _exec_report = ExecutionReport::default();
+        if allow_fill {
+            // TODO unload strategy crit, log to db
+            _exec_report = ob.add_limit_order(order);
+        } else if order.side == Side::Ask {
+            if let Some(best_bid_price) = ob.best_bid_price {
+                if order.price > best_bid_price {
+                    _exec_report = ob.add_limit_order(order);
+                }
+            } else {
+                _exec_report = ob.add_limit_order(order);
+            };
+        } else if order.side == Side::Bid {
+            if let Some(best_offer_price) = ob.best_offer_price {
+                if order.price < best_offer_price {
+                    _exec_report = ob.add_limit_order(order);
+                }
+            } else {
+                _exec_report = ob.add_limit_order(order);
+            };
+        }
+        _exec_report
+    }
+}
+
 fn place_head_tail(
     ob: &mut OrderBook,
+    body_f: impl Fn(&mut OrderBook, Order) -> ExecutionReport,
     qty_head: u32,
     qty_tail: u32,
     qty: u32,
@@ -56,7 +86,7 @@ fn place_head_tail(
     id: u64,
     side: Side,
     price: u32,
-) {
+) -> ExecutionReport {
     dbgp!("{} {} {} {:?} {}", qty_head, qty, qty_tail, side, price);
     let (qty_head, qty_tail) = if new_qty < qty_head + qty_tail {
         let need_to_cut = qty_tail + qty_head - new_qty;
@@ -78,40 +108,15 @@ fn place_head_tail(
             qty: qty_head,
         });
     }
-    if let Some(best_offer_price) = ob.best_offer_price {
-        if side == Side::Bid && price < best_offer_price {
-            let _ = ob.add_limit_order(Order {
-                id,
-                side,
-                price,
-                qty,
-            });
-        }
-    } else if side == Side::Bid {
-        let _ = ob.add_limit_order(Order {
-            id,
-            side,
-            price,
-            qty,
-        });
-    }
-    if let Some(best_bid_price) = ob.best_bid_price {
-        if side == Side::Ask && price > best_bid_price {
-            let _ = ob.add_limit_order(Order {
-                id,
-                side,
-                price,
-                qty,
-            });
-        }
-    } else if side == Side::Ask {
-        let _ = ob.add_limit_order(Order {
-            id,
-            side,
-            price,
-            qty,
-        });
-    }
+    let order = Order {
+        id,
+        side,
+        price,
+        qty,
+    };
+
+    let exec_report = body_f(ob, order);
+
     if qty_tail > 0 {
         let _ = ob.add_limit_order(Order {
             id: id + 1,
@@ -119,11 +124,18 @@ fn place_head_tail(
             price,
             qty: qty_tail,
         });
-    }
+    };
+    exec_report
 }
 
-pub fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str>)) -> OrderBook {
+pub fn next_snap(
+    snap: Snap,
+    offsets: (Result<Offset, &str>, Result<Offset, &str>),
+    body_f: impl Fn(&mut OrderBook, Order) -> ExecutionReport,
+) -> (OrderBook, Option<ExecutionReport>, Option<ExecutionReport>) {
     let mut ob = OrderBook::new();
+    let mut exec_report_bid = None;
+    let mut exec_report_ask = None;
     match (offsets.0.ok(), offsets.1.ok()) {
         (
             Some((Side::Bid, price_bid, qty_head_bid, qty_bid, qty_tail_bid, id_bid)),
@@ -142,8 +154,9 @@ pub fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str
                 }
             }
             place_order_from_snap(filtered_snap, &mut ob);
-            place_head_tail(
+            exec_report_bid = Some(place_head_tail(
                 &mut ob,
+                &body_f,
                 qty_head_bid,
                 qty_tail_bid,
                 qty_bid,
@@ -151,9 +164,10 @@ pub fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str
                 id_bid,
                 Side::Bid,
                 price_bid,
-            );
-            place_head_tail(
+            ));
+            exec_report_ask = Some(place_head_tail(
                 &mut ob,
+                &body_f,
                 qty_head_ask,
                 qty_tail_ask,
                 qty_ask,
@@ -161,7 +175,7 @@ pub fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str
                 id_ask,
                 Side::Ask,
                 price_ask,
-            );
+            ));
         }
         (Some((side, bid_price, qty_head, qty, qty_tail, id)), None) => {
             let mut filtered_snap = Snap::new();
@@ -174,9 +188,9 @@ pub fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str
                 }
             }
             place_order_from_snap(filtered_snap, &mut ob);
-            place_head_tail(
-                &mut ob, qty_head, qty_tail, qty, new_qty, id, side, bid_price,
-            );
+            exec_report_bid = Some(place_head_tail(
+                &mut ob, body_f, qty_head, qty_tail, qty, new_qty, id, side, bid_price,
+            ));
         }
         (None, Some((side, ask_price, qty_head, qty, qty_tail, id))) => {
             let mut filtered_snap = Snap::new();
@@ -189,14 +203,14 @@ pub fn next_snap(snap: Snap, offsets: (Result<Offset, &str>, Result<Offset, &str
                 }
             }
             place_order_from_snap(filtered_snap, &mut ob);
-            place_head_tail(
-                &mut ob, qty_head, qty_tail, qty, new_qty, id, side, ask_price,
-            );
+            exec_report_ask = Some(place_head_tail(
+                &mut ob, body_f, qty_head, qty_tail, qty, new_qty, id, side, ask_price,
+            ));
         }
         (None, None) => place_order_from_snap(snap, &mut ob),
         (_, _) => unreachable!(),
     }
-    ob
+    (ob, exec_report_bid, exec_report_ask)
 }
 
 #[cfg(test)]
@@ -230,7 +244,7 @@ mod tests {
         let mut ob = OrderBook::new();
         let strat = &mut TestStrategy::new();
         let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
-        ob = ob.process(snap, oms);
+        ob = ob.process(snap, oms, place_body(false));
         assert_eq!(ob.get_bbo().unwrap(), (99, 101, 2));
     }
 }
