@@ -48,7 +48,6 @@ impl Default for TestStrategy {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Default)]
 pub struct FixPriceStrategy {
     pub qty: u32,
