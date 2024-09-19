@@ -1,6 +1,8 @@
 use crate::{
-    dbgp, experiments::Ready, management::OrderManagementSystem, place_body, BestBidOffer, Order,
-    OrderBook, Snap,
+    dbgp,
+    experiments::{Ready, Schedule},
+    management::OrderManagementSystem,
+    place_body, BestBidOffer, Order, OrderBook, Snap,
 };
 
 use crate::backtest::FixPriceStrategy;
@@ -76,7 +78,7 @@ pub fn execution_flow(
                             order.id, epoch, 10_000_000, 1
                         );
                         oms.lock_release();
-                        // schedule = Schedule::new();
+                        oms.schedule = Schedule::new();
                     } else {
                         *ob = ob.process_w_takers(snap, oms, place_body(true));
                         trader_buy_id = epoch + 3;

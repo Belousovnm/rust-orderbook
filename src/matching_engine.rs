@@ -526,7 +526,7 @@ impl OrderBook {
         let buy_offset = self.get_offset(oms, Side::Bid);
         let sell_offset = self.get_offset(oms, Side::Ask);
         dbgp!("[OFFSET] {:?}", (buy_offset, sell_offset));
-        let (ob, exec_report_bid, _exec_report_ask) =
+        let (ob, exec_report_bid, exec_report_ask) =
             next_snap(snap, (buy_offset, sell_offset), body_f);
         if let Some(id) = oms.get_order_id(Side::Bid) {
             if ob.get_order(id).is_none() {
@@ -546,6 +546,20 @@ impl OrderBook {
                     exch_epoch,
                     exec_report.own_id,
                     (exch_epoch + 3 - exec_report.own_id) / 1000,
+                    0
+                );
+                oms.lock_release();
+                oms.schedule = Schedule::new();
+            }
+        }
+        if let Some(exec_report) = exec_report_ask {
+            if exec_report.status == OrderStatus::Filled {
+                oms.strategy.buy_price = None;
+                println!(
+                    "[--DB--] epoch_start={} epoch_end={} delta={}us censored={}",
+                    exch_epoch,
+                    exec_report.own_id,
+                    (exch_epoch + 7 - exec_report.own_id) / 1000,
                     0
                 );
                 oms.lock_release();

@@ -374,7 +374,6 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
             exec_report = ob.add_limit_order(self.strategy_buy_signal.unwrap());
             dbgp!("New buy order {:?}", exec_report);
         }
-        dbgp!("WTF {}", self.strategy_buy_signal.unwrap().id);
         if exec_report.status == OrderStatus::Filled {
             println!(
                 "[  DB  ] (send) epoch_start={} epoch_end={} delta={}us censored={}",
@@ -692,7 +691,15 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                     if trader_filled_qty == active_sell.qty {
                         self.active_sell_order = None;
                         self.strategy.sell_price = None;
-                        // todo!
+                        println!(
+                            "[  DB  ] epoch_start={} epoch_end={} delta={}us censored={}",
+                            active_sell.id,
+                            exec_report.own_id,
+                            (exec_report.own_id - active_sell.id + 3) / 1000,
+                            0
+                        );
+                        self.lock_release();
+                        self.schedule = Schedule::new();
                     } else {
                         let qty = order.qty;
                         // dbgp!("BEFORE FILLED: {:?}", self.active_sell_order);
