@@ -542,7 +542,7 @@ impl OrderBook {
             if exec_report.status == OrderStatus::Filled {
                 oms.strategy.buy_price = None;
                 println!(
-                    "[--DB--] epoch_start={} epoch_end={} delta={}us censored={}",
+                    "[--DB--];{};{};{};{};",
                     exch_epoch,
                     exec_report.own_id,
                     (exch_epoch + 3 - exec_report.own_id) / 1000,
@@ -556,7 +556,7 @@ impl OrderBook {
             if exec_report.status == OrderStatus::Filled {
                 oms.strategy.buy_price = None;
                 println!(
-                    "[--DB--] epoch_start={} epoch_end={} delta={}us censored={}",
+                    "[--DB--];{};{};{};{};",
                     exch_epoch,
                     exec_report.own_id,
                     (exch_epoch + 7 - exec_report.own_id) / 1000,

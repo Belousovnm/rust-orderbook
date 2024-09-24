@@ -3,5 +3,4 @@
 perf.*
 .gdb_history
 *.out*
-log
-log.gz
+*log*

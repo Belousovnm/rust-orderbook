@@ -376,7 +376,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
         }
         if exec_report.status == OrderStatus::Filled {
             println!(
-                "[  DB  ] (send) epoch_start={} epoch_end={} delta={}us censored={}",
+                "[  DB  ];{};{};{};{};",
                 exec_report.own_id,
                 epoch,
                 (epoch + 3 - exec_report.own_id) / 1000,
@@ -402,7 +402,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
         }
         if exec_report.status == OrderStatus::Filled {
             println!(
-                "[  DB  ] (send) epoch_start={} epoch_end={} delta={}us censored={}",
+                "[  DB  ];{};{};{};{};",
                 exec_report.own_id,
                 epoch,
                 (epoch + 7 - exec_report.own_id) / 1000,
@@ -649,7 +649,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                             self.active_buy_order = None;
                             self.strategy.buy_price = None;
                             println!(
-                                "[  DB  ] epoch_start={} epoch_end={} delta={}us censored={}",
+                                "[  DB  ];{};{};{};{};",
                                 active_buy.id,
                                 exec_report.own_id,
                                 (exec_report.own_id - active_buy.id + 3) / 1000,
@@ -692,7 +692,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                         self.active_sell_order = None;
                         self.strategy.sell_price = None;
                         println!(
-                            "[  DB  ] epoch_start={} epoch_end={} delta={}us censored={}",
+                            "[  DB  ];{};{};{};{};",
                             active_sell.id,
                             exec_report.own_id,
                             (exec_report.own_id - active_sell.id + 3) / 1000,
