@@ -1,6 +1,4 @@
-use crate::backtest::Strategy;
-use crate::management::OrderManagementSystem;
-use crate::OrderBook;
+use crate::{backtest::Strategy, management::OrderManagementSystem, OrderBook};
 
 #[allow(dead_code)]
 impl<'a, S: Strategy> OrderManagementSystem<'a, S> {

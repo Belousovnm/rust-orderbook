@@ -1,3 +1,25 @@
-
 edition = "2021"
-imports_granularity = "crate"
+
+# Basic
+hard_tabs = false
+max_width = 80
+# use_small_heuristics = "Max"
+
+# Imports
+imports_granularity = "Crate"
+reorder_imports = true
+
+# Consistency
+newline_style = "Unix"
+
+# Misc
+binop_separator = "Front"
+chain_width = 80
+match_arm_blocks = true
+match_arm_leading_pipes = "Always"
+match_block_trailing_comma = false
+reorder_impl_items = false
+spaces_around_ranges = false
+trailing_comma = "Vertical"
+trailing_semicolon = true
+use_field_init_shorthand = true

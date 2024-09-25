@@ -3,7 +3,10 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use orderbook::{Order, OrderBook, Side};
 use rand::Rng;
 
-fn run_orders(num_orders: i32, rng: &mut rand::prelude::ThreadRng) -> OrderBook {
+fn run_orders(
+    num_orders: i32,
+    rng: &mut rand::prelude::ThreadRng,
+) -> OrderBook {
     let mut ob = OrderBook::new();
     for i in 1..=num_orders {
         ob.add_limit_order(Order {
@@ -29,7 +32,9 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("order-benchmark");
     // let plot_config = PlotConfiguration::default().summary_scale(AxisScale::Logarithmic);
     // group.plot_config(plot_config);
-    group.bench_function("Match orders", |b| b.iter(|| run_orders(1_000, &mut rng)));
+    group.bench_function("Match orders", |b| {
+        b.iter(|| run_orders(1_000, &mut rng))
+    });
     group.finish();
 }
 

@@ -1,6 +1,6 @@
 use orderbook::{
-    account::TradingAccount, backtest::FixPriceStrategy, experiments::execution_flow,
-    management::OrderManagementSystem, OrderBook,
+    account::TradingAccount, backtest::FixPriceStrategy,
+    experiments::execution_flow, management::OrderManagementSystem, OrderBook,
 };
 
 fn main() {

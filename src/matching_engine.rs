@@ -1,6 +1,5 @@
-use crate::backtest::FixPriceStrategy;
 use crate::{
-    backtest::Strategy,
+    backtest::{FixPriceStrategy, Strategy},
     dbgp,
     experiments::Schedule,
     management::OrderManagementSystem,
@@ -93,10 +92,7 @@ impl HalfBook {
     }
     #[allow(unused)]
     pub fn get_total_qty(&self, price: u32) -> u32 {
-        self.price_levels[self.price_map[&price]]
-            .iter()
-            .map(|s| s.qty)
-            .sum()
+        self.price_levels[self.price_map[&price]].iter().map(|s| s.qty).sum()
     }
 }
 
@@ -131,11 +127,15 @@ impl OrderBook {
     /// # Panics
     ///
     /// Will panic if `OrderBook` state was corrupted
-    pub fn cancel_order(&mut self, order_id: u64) -> Result<ExecutionReport, String> {
-        if let Some((side, price_level, price)) = self.order_loc.get(&order_id) {
+    pub fn cancel_order(
+        &mut self,
+        order_id: u64,
+    ) -> Result<ExecutionReport, String> {
+        if let Some((side, price_level, price)) = self.order_loc.get(&order_id)
+        {
             let book = match side {
-                Side::Bid => &mut self.bid_book,
-                Side::Ask => &mut self.ask_book,
+                | Side::Bid => &mut self.bid_book,
+                | Side::Ask => &mut self.ask_book,
             };
             let currdeque = book
                 .price_levels
@@ -170,8 +170,8 @@ impl OrderBook {
         let mut rng = rand::thread_rng();
         let order_id = order_id.unwrap_or_else(|| rng.gen());
         let book = match side {
-            Side::Ask => &mut self.ask_book,
-            Side::Bid => &mut self.bid_book,
+            | Side::Ask => &mut self.ask_book,
+            | Side::Bid => &mut self.bid_book,
         };
         let order = Order {
             id: order_id,
@@ -201,10 +201,10 @@ impl OrderBook {
         for (p, u) in &self.bid_book.price_map {
             if !self.bid_book.price_levels[*u].is_empty() {
                 best_bid_price = match best_bid_price {
-                    None => Some(*p),
-                    Some(v) if v < *p => Some(*p),
-                    Some(v) if v >= *p => Some(v),
-                    _ => unreachable!(),
+                    | None => Some(*p),
+                    | Some(v) if v < *p => Some(*p),
+                    | Some(v) if v >= *p => Some(v),
+                    | _ => unreachable!(),
                 }
             }
         }
@@ -212,10 +212,10 @@ impl OrderBook {
         for (p, u) in &self.ask_book.price_map {
             if !self.ask_book.price_levels[*u].is_empty() {
                 best_offer_price = match best_offer_price {
-                    None => Some(*p),
-                    Some(v) if v > *p => Some(*p),
-                    Some(v) if v <= *p => Some(v),
-                    _ => unreachable!(),
+                    | None => Some(*p),
+                    | Some(v) if v > *p => Some(*p),
+                    | Some(v) if v <= *p => Some(v),
+                    | _ => unreachable!(),
                 }
             }
         }
@@ -240,19 +240,19 @@ impl OrderBook {
         for o in price_level.iter() {
             if *incoming_order_qty > 0 {
                 match o.qty.cmp(incoming_order_qty) {
-                    Ordering::Less => {
+                    | Ordering::Less => {
                         dbgp!("[ FILL ]    Incomplete {}", o.price);
                         *incoming_order_qty -= o.qty;
                         done_qty.push(o.qty);
                         incomplete_fills += 1;
                     }
-                    Ordering::Equal => {
+                    | Ordering::Equal => {
                         dbgp!("[ FILL ]    Complete {}", o.price);
                         done_qty.push(o.qty);
                         incomplete_fills += 1;
                         *incoming_order_qty = 0;
                     }
-                    Ordering::Greater => {
+                    | Ordering::Greater => {
                         dbgp!("[ FILL ]    Complete {}", o.price);
                         done_qty.push(*incoming_order_qty);
                         front_dec = *incoming_order_qty;
@@ -289,7 +289,7 @@ impl OrderBook {
         );
         let mut exec_report = ExecutionReport::new();
         match order.side {
-            Side::Bid => {
+            | Side::Bid => {
                 let askbook = &mut self.ask_book;
                 let price_map = &mut askbook.price_map;
                 let price_levels = &mut askbook.price_levels;
@@ -304,8 +304,15 @@ impl OrderBook {
                             &mut self.order_loc,
                         );
                         for i in 0..id_vec.len() {
-                            dbgp!("[ INFO ]    Matched {}@{} id={}", qty_vec[i], x, id_vec[i]);
-                            exec_report.filled_orders.push((id_vec[i], qty_vec[i], *x));
+                            dbgp!(
+                                "[ INFO ]    Matched {}@{} id={}",
+                                qty_vec[i],
+                                x,
+                                id_vec[i]
+                            );
+                            exec_report
+                                .filled_orders
+                                .push((id_vec[i], qty_vec[i], *x));
                         }
                         if let Some((a, _)) = price_map_iter.next() {
                             x = a;
@@ -315,7 +322,7 @@ impl OrderBook {
                     }
                 }
             }
-            Side::Ask => {
+            | Side::Ask => {
                 let bidbook = &mut self.bid_book;
                 let price_map = &mut bidbook.price_map;
                 let price_levels = &mut bidbook.price_levels;
@@ -330,8 +337,15 @@ impl OrderBook {
                             &mut self.order_loc,
                         );
                         for i in 0..id_vec.len() {
-                            dbgp!("[ INFO ]    Matched {}@{} {}", qty_vec[i], x, id_vec[i]);
-                            exec_report.filled_orders.push((id_vec[i], qty_vec[i], *x));
+                            dbgp!(
+                                "[ INFO ]    Matched {}@{} {}",
+                                qty_vec[i],
+                                x,
+                                id_vec[i]
+                            );
+                            exec_report
+                                .filled_orders
+                                .push((id_vec[i], qty_vec[i], *x));
                         }
                         if let Some((a, _)) = price_map_iter.next_back() {
                             x = a;
@@ -343,7 +357,7 @@ impl OrderBook {
             }
         }
         let status = match remaining_order_qty {
-            qty if qty == order.qty => {
+            | qty if qty == order.qty => {
                 self.create_new_limit_order(
                     order.side,
                     order.price,
@@ -353,7 +367,7 @@ impl OrderBook {
                 OrderStatus::Created
             }
 
-            qty if qty > 0 => {
+            | qty if qty > 0 => {
                 self.create_new_limit_order(
                     order.side,
                     order.price,
@@ -362,12 +376,13 @@ impl OrderBook {
                 );
                 OrderStatus::PartiallyFilled
             }
-            0 => OrderStatus::Filled,
-            _ => unreachable!(),
+            | 0 => OrderStatus::Filled,
+            | _ => unreachable!(),
         };
 
         if order.side == Side::Bid {
-            if self.best_bid_price.is_none() | self.best_bid_price.is_some_and(|b| order.price > b)
+            if self.best_bid_price.is_none()
+                | self.best_bid_price.is_some_and(|b| order.price > b)
             {
                 self.update_bbo();
             }
@@ -392,10 +407,10 @@ impl OrderBook {
     /// Will return `Err` if atleast one `HalfBook` in `OrderBook` is empty
     pub fn get_bbo(&self) -> Result<(u32, u32, u32), &str> {
         match (self.best_bid_price, self.best_offer_price) {
-            (None, None) => Err("Both bid and offer HalfBooks are empty"),
-            (Some(_bid), None) => Err("Offer HalfBook is empty"),
-            (None, Some(_ask)) => Err("Bid HalfBook is empty"),
-            (Some(bid_price), Some(ask_price)) => {
+            | (None, None) => Err("Both bid and offer HalfBooks are empty"),
+            | (Some(_bid), None) => Err("Offer HalfBook is empty"),
+            | (None, Some(_ask)) => Err("Bid HalfBook is empty"),
+            | (Some(bid_price), Some(ask_price)) => {
                 dbgp!(
                     "[ BBO  ] {:?}@{} x {:?}@{}",
                     self.bid_book.get_total_qty(bid_price),
@@ -413,8 +428,8 @@ impl OrderBook {
     pub fn get_order(&self, order_id: u64) -> Option<&Order> {
         let (side, price_level, _) = self.order_loc.get(&order_id)?;
         let book = match side {
-            Side::Bid => &self.bid_book,
-            Side::Ask => &self.ask_book,
+            | Side::Bid => &self.bid_book,
+            | Side::Ask => &self.ask_book,
         };
         // let currdeque = book.price_levels.get(*price_level).unwrap();
         let currdeque = &book.price_levels[*price_level];
@@ -445,10 +460,11 @@ impl OrderBook {
         side: Side,
     ) -> Result<(Side, u32, u32, u32, u32, u64), &str> {
         let order_id = oms.get_order_id(side).ok_or("No such order id")?;
-        if let Some((side, price_level, price)) = self.order_loc.get(&order_id) {
+        if let Some((side, price_level, price)) = self.order_loc.get(&order_id)
+        {
             let book = match side {
-                Side::Bid => &self.bid_book,
-                Side::Ask => &self.ask_book,
+                | Side::Bid => &self.bid_book,
+                | Side::Ask => &self.ask_book,
             };
             let mut qty_head = 0;
             let mut qty_tail = 0;

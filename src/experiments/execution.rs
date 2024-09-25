@@ -69,38 +69,62 @@ pub fn execution_flow(
                     oms.schedule.counter
                 );
                 // Active orders
-                if let Some(order) = oms.active_buy_order.or(oms.active_sell_order) {
+                if let Some(order) =
+                    oms.active_buy_order.or(oms.active_sell_order)
+                {
                     // 10s censoring
                     if epoch - order.id >= 10_000_000_000 {
                         oms.cancel_all_orders(ob);
-                        println!("[  DB  ];{};{};{};{};", order.id, epoch, 10_000_000, 1);
+                        println!(
+                            "[  DB  ];{};{};{};{};",
+                            order.id, epoch, 10_000_000, 1
+                        );
                         oms.lock_release();
                         oms.schedule = Schedule::new();
                     } else {
                         *ob = ob.process_w_takers(snap, oms, place_body(true));
                         trader_buy_id = epoch + 3;
                         trader_sell_id = epoch + 7;
-                        oms.send_orders(ob, epoch, trader_buy_id, trader_sell_id);
+                        oms.send_orders(
+                            ob,
+                            epoch,
+                            trader_buy_id,
+                            trader_sell_id,
+                        );
                     }
                 // No active orders
                 } else {
                     match oms.schedule.ready() {
-                        Ready::Yes => {
+                        | Ready::Yes => {
                             // Lock new price after cooldown
                             dbgp!("!!!! READY !!!!!");
                             oms.schedule.set_counter(0);
-                            *ob = ob.process_w_takers(snap, oms, place_body(true));
+                            *ob = ob.process_w_takers(
+                                snap,
+                                oms,
+                                place_body(true),
+                            );
                             let bbo = BestBidOffer::evaluate(ob);
                             dbgp!("bbo = {:?}", bbo);
-                            oms.strategy.buy_price = oms.lock_bid_price(bbo).ok();
-                            oms.strategy.sell_price = oms.lock_ask_price(bbo).ok();
+                            oms.strategy.buy_price =
+                                oms.lock_bid_price(bbo).ok();
+                            oms.strategy.sell_price =
+                                oms.lock_ask_price(bbo).ok();
                             dbgp!("[ LOCK ] BID: {:?}", oms.strategy.buy_price);
-                            dbgp!("[ LOCK ] ASK: {:?}", oms.strategy.sell_price);
+                            dbgp!(
+                                "[ LOCK ] ASK: {:?}",
+                                oms.strategy.sell_price
+                            );
                             trader_buy_id = epoch + 3;
                             trader_sell_id = epoch + 7;
-                            oms.send_orders(ob, epoch, trader_buy_id, trader_sell_id);
+                            oms.send_orders(
+                                ob,
+                                epoch,
+                                trader_buy_id,
+                                trader_sell_id,
+                            );
                         }
-                        Ready::No => oms.schedule.incr_counter(),
+                        | Ready::No => oms.schedule.incr_counter(),
                     };
                 }
                 // dbgp!("{:?}", ob.get_order(oms.active_buy_order));

@@ -1,5 +1,6 @@
 use crate::{
-    dbgp, management::OrderManagementSystem, place_body, Midprice, Order, OrderBook, Snap,
+    dbgp, management::OrderManagementSystem, place_body, Midprice, Order,
+    OrderBook, Snap,
 };
 use readable::num::Unsigned;
 use std::fmt;
@@ -17,13 +18,13 @@ pub struct StrategyMetrics {
 impl fmt::Display for StrategyMetrics {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
-            f,
-            "PnL abs     = {:.1}\nPnl bps     = {:.3}\nVolume      = {}\nTrade Count = {}",
-            self.pnl_abs,
-            self.pnl_bps,
-            Unsigned::from(self.volume),
-            Unsigned::from(self.trade_count)
-        )
+			f,
+			"PnL abs     = {:.1}\nPnl bps     = {:.3}\nVolume      = {}\nTrade Count = {}",
+			self.pnl_abs,
+			self.pnl_bps,
+			Unsigned::from(self.volume),
+			Unsigned::from(self.trade_count)
+		)
     }
 }
 
@@ -75,7 +76,9 @@ pub fn strategy_flow(
                 dbgp!("POS {:#?}", oms.strategy.master_position);
                 dbgp!("ACC {:#?}", oms.account.balance);
                 if prev_account_balance != oms.account.balance {
-                    trading_volume += (oms.account.balance - prev_account_balance).unsigned_abs();
+                    trading_volume += (oms.account.balance
+                        - prev_account_balance)
+                        .unsigned_abs();
                     trade_count += 1;
                 }
                 // Load next order
@@ -109,8 +112,8 @@ pub fn strategy_flow(
         oms.account.balance as f32,
     );
     let pnl_bps = match trading_volume {
-        0 => 0.0,
-        _ => (pnl / (trading_volume as f32)) * 10000.0,
+        | 0 => 0.0,
+        | _ => (pnl / (trading_volume as f32)) * 10000.0,
     };
     dbgp!("Done!");
     let metrics = StrategyMetrics {

@@ -49,7 +49,9 @@ fn place_order_from_snap(snap: Snap, ob: &mut OrderBook) {
     }
 }
 
-pub fn place_body(allow_fill: bool) -> impl Fn(&mut OrderBook, Order) -> ExecutionReport {
+pub fn place_body(
+    allow_fill: bool,
+) -> impl Fn(&mut OrderBook, Order) -> ExecutionReport {
     move |ob: &mut OrderBook, order: Order| {
         let mut _exec_report = ExecutionReport::default();
         if allow_fill {
@@ -137,9 +139,23 @@ pub fn next_snap(
     let mut exec_report_bid = None;
     let mut exec_report_ask = None;
     match (offsets.0.ok(), offsets.1.ok()) {
-        (
-            Some((Side::Bid, price_bid, qty_head_bid, qty_bid, qty_tail_bid, id_bid)),
-            Some((Side::Ask, price_ask, qty_head_ask, qty_ask, qty_tail_ask, id_ask)),
+        | (
+            Some((
+                Side::Bid,
+                price_bid,
+                qty_head_bid,
+                qty_bid,
+                qty_tail_bid,
+                id_bid,
+            )),
+            Some((
+                Side::Ask,
+                price_ask,
+                qty_head_ask,
+                qty_ask,
+                qty_tail_ask,
+                id_ask,
+            )),
         ) => {
             let mut filtered_snap = Snap::new();
             let mut new_qty_bid = 0;
@@ -177,7 +193,7 @@ pub fn next_snap(
                 price_ask,
             ));
         }
-        (Some((side, bid_price, qty_head, qty, qty_tail, id)), None) => {
+        | (Some((side, bid_price, qty_head, qty, qty_tail, id)), None) => {
             let mut filtered_snap = Snap::new();
             let mut new_qty = 0;
             for level in snap {
@@ -189,10 +205,11 @@ pub fn next_snap(
             }
             place_order_from_snap(filtered_snap, &mut ob);
             exec_report_bid = Some(place_head_tail(
-                &mut ob, body_f, qty_head, qty_tail, qty, new_qty, id, side, bid_price,
+                &mut ob, body_f, qty_head, qty_tail, qty, new_qty, id, side,
+                bid_price,
             ));
         }
-        (None, Some((side, ask_price, qty_head, qty, qty_tail, id))) => {
+        | (None, Some((side, ask_price, qty_head, qty, qty_tail, id))) => {
             let mut filtered_snap = Snap::new();
             let mut new_qty = 0;
             for level in snap {
@@ -204,11 +221,12 @@ pub fn next_snap(
             }
             place_order_from_snap(filtered_snap, &mut ob);
             exec_report_ask = Some(place_head_tail(
-                &mut ob, body_f, qty_head, qty_tail, qty, new_qty, id, side, ask_price,
+                &mut ob, body_f, qty_head, qty_tail, qty, new_qty, id, side,
+                ask_price,
             ));
         }
-        (None, None) => place_order_from_snap(snap, &mut ob),
-        (_, _) => unreachable!(),
+        | (None, None) => place_order_from_snap(snap, &mut ob),
+        | (_, _) => unreachable!(),
     }
     (ob, exec_report_bid, exec_report_ask)
 }
@@ -218,8 +236,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        account::TradingAccount, backtest::TestStrategy, management::OrderManagementSystem,
-        matching_engine::Side,
+        account::TradingAccount, backtest::TestStrategy,
+        management::OrderManagementSystem, matching_engine::Side,
     };
     use pretty_assertions::assert_eq;
 
@@ -243,7 +261,8 @@ mod tests {
         // let offset = Ok((Side::Bid, 101, 0, 1, 0, 999));
         let mut ob = OrderBook::new();
         let strat = &mut TestStrategy::new();
-        let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
+        let oms =
+            &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
         ob = ob.process(snap, oms, place_body(false));
         assert_eq!(ob.get_bbo().unwrap(), (99, 101, 2));
     }
