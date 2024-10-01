@@ -92,7 +92,10 @@ impl HalfBook {
     }
     #[allow(unused)]
     pub fn get_total_qty(&self, price: u32) -> u32 {
-        self.price_levels[self.price_map[&price]].iter().map(|s| s.qty).sum()
+        self.price_levels[self.price_map[&price]]
+            .iter()
+            .map(|s| s.qty)
+            .sum()
     }
 }
 
@@ -127,12 +130,8 @@ impl OrderBook {
     /// # Panics
     ///
     /// Will panic if `OrderBook` state was corrupted
-    pub fn cancel_order(
-        &mut self,
-        order_id: u64,
-    ) -> Result<ExecutionReport, String> {
-        if let Some((side, price_level, price)) = self.order_loc.get(&order_id)
-        {
+    pub fn cancel_order(&mut self, order_id: u64) -> Result<ExecutionReport, String> {
+        if let Some((side, price_level, price)) = self.order_loc.get(&order_id) {
             let book = match side {
                 | Side::Bid => &mut self.bid_book,
                 | Side::Ask => &mut self.ask_book,
@@ -304,15 +303,8 @@ impl OrderBook {
                             &mut self.order_loc,
                         );
                         for i in 0..id_vec.len() {
-                            dbgp!(
-                                "[ INFO ]    Matched {}@{} id={}",
-                                qty_vec[i],
-                                x,
-                                id_vec[i]
-                            );
-                            exec_report
-                                .filled_orders
-                                .push((id_vec[i], qty_vec[i], *x));
+                            dbgp!("[ INFO ]    Matched {}@{} id={}", qty_vec[i], x, id_vec[i]);
+                            exec_report.filled_orders.push((id_vec[i], qty_vec[i], *x));
                         }
                         if let Some((a, _)) = price_map_iter.next() {
                             x = a;
@@ -337,15 +329,8 @@ impl OrderBook {
                             &mut self.order_loc,
                         );
                         for i in 0..id_vec.len() {
-                            dbgp!(
-                                "[ INFO ]    Matched {}@{} {}",
-                                qty_vec[i],
-                                x,
-                                id_vec[i]
-                            );
-                            exec_report
-                                .filled_orders
-                                .push((id_vec[i], qty_vec[i], *x));
+                            dbgp!("[ INFO ]    Matched {}@{} {}", qty_vec[i], x, id_vec[i]);
+                            exec_report.filled_orders.push((id_vec[i], qty_vec[i], *x));
                         }
                         if let Some((a, _)) = price_map_iter.next_back() {
                             x = a;
@@ -381,8 +366,7 @@ impl OrderBook {
         };
 
         if order.side == Side::Bid {
-            if self.best_bid_price.is_none()
-                | self.best_bid_price.is_some_and(|b| order.price > b)
+            if self.best_bid_price.is_none() | self.best_bid_price.is_some_and(|b| order.price > b)
             {
                 self.update_bbo();
             }
@@ -460,8 +444,7 @@ impl OrderBook {
         side: Side,
     ) -> Result<(Side, u32, u32, u32, u32, u64), &str> {
         let order_id = oms.get_order_id(side).ok_or("No such order id")?;
-        if let Some((side, price_level, price)) = self.order_loc.get(&order_id)
-        {
+        if let Some((side, price_level, price)) = self.order_loc.get(&order_id) {
             let book = match side {
                 | Side::Bid => &self.bid_book,
                 | Side::Ask => &self.ask_book,

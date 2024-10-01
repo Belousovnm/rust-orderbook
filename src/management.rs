@@ -69,8 +69,7 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
                 .unwrap();
             dbgp!("Amend buy order {:?}", exec_report);
         } else {
-            exec_report =
-                ob.add_limit_order(self.strategy_sell_signal.unwrap());
+            exec_report = ob.add_limit_order(self.strategy_sell_signal.unwrap());
             dbgp!("New buy order {:?}", exec_report);
         }
         if exec_report.status == OrderStatus::Created {
@@ -84,21 +83,13 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
     ///
     /// Will return `Err` if either `Indicator` fails to provide reference price
     /// or `Strategy` has no limit left for this side
-    pub fn calculate_buy_order(
-        &self,
-        ref_price: Option<f32>,
-        id: u64,
-    ) -> Result<Order, String> {
+    pub fn calculate_buy_order(&self, ref_price: Option<f32>, id: u64) -> Result<Order, String> {
         let side = Side::Bid;
         let price = (ref_price.ok_or_else(|| "Missing Ref Price".to_owned())?
             * (1.0 + self.strategy.buy_criterion))
             .floor() as u32;
-        let free_qty = if self.strategy.buy_position_limit
-            - self.strategy.master_position
-            > 0
-        {
-            (self.strategy.buy_position_limit - self.strategy.master_position)
-                as u32
+        let free_qty = if self.strategy.buy_position_limit - self.strategy.master_position > 0 {
+            (self.strategy.buy_position_limit - self.strategy.master_position) as u32
         } else {
             0
         };
@@ -126,21 +117,13 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
     ///
     /// Will return `Err` if either `Indicator` fails to provide reference price
     /// or `Strategy` has no limit left for this side
-    pub fn calculate_sell_order(
-        &self,
-        ref_price: Option<f32>,
-        id: u64,
-    ) -> Result<Order, String> {
+    pub fn calculate_sell_order(&self, ref_price: Option<f32>, id: u64) -> Result<Order, String> {
         let side = Side::Ask;
         let price = (ref_price.ok_or_else(|| "Missing Ref Price".to_owned())?
             * (1.0 + self.strategy.sell_criterion))
             .ceil() as u32;
-        let free_qty = if -self.strategy.sell_position_limit
-            + self.strategy.master_position
-            > 0
-        {
-            (-self.strategy.sell_position_limit + self.strategy.master_position)
-                as u32
+        let free_qty = if -self.strategy.sell_position_limit + self.strategy.master_position > 0 {
+            (-self.strategy.sell_position_limit + self.strategy.master_position) as u32
         } else {
             0
         };
@@ -211,11 +194,7 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
                         _price,
                         buy_order.price
                     );
-                    dbgp!(
-                        "[ STRAT] Old qty {}, New qty {}",
-                        _qty,
-                        buy_order.qty
-                    );
+                    dbgp!("[ STRAT] Old qty {}, New qty {}", _qty, buy_order.qty);
                     dbgp!("[ STRAT] send {:#?}", buy_order);
                     self.strategy_buy_signal = Some(buy_order);
                     send_buy_order = true;
@@ -262,11 +241,7 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
                         _price,
                         sell_order.price
                     );
-                    dbgp!(
-                        "[ STRAT] Old qty {}, New qty {}",
-                        _qty,
-                        sell_order.qty
-                    );
+                    dbgp!("[ STRAT] Old qty {}, New qty {}", _qty, sell_order.qty);
                     dbgp!("[ STRAT] send {:#?}", sell_order);
                     self.strategy_sell_signal = Some(sell_order);
                     send_sell_order = true;
@@ -285,9 +260,7 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
         match (send_buy_order, send_sell_order) {
             | (true, true) => {
                 if let Some(active_sell) = self.active_sell_order {
-                    if self.strategy_buy_signal.unwrap().price
-                        < active_sell.price
-                    {
+                    if self.strategy_buy_signal.unwrap().price < active_sell.price {
                         self.send_buy_order(ob);
                         self.send_sell_order(ob);
                     } else {
@@ -325,8 +298,7 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
                     );
                     self.strategy
                         .increment_master_position(trader_filled_qty as i32);
-                    self.account.balance -=
-                        (trader_filled_qty * trader_filled_price) as i32;
+                    self.account.balance -= (trader_filled_qty * trader_filled_price) as i32;
                     dbgp!("TRADER FILLED: {}", trader_filled_qty);
                     if let Some(active_buy) = self.active_buy_order {
                         if trader_filled_qty == active_buy.qty {
@@ -347,8 +319,10 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
             }
         }
         if let Some(order) = self.active_sell_order {
-            if let Some(key) =
-                exec_report.filled_orders.iter().position(|&o| o.0 == order.id)
+            if let Some(key) = exec_report
+                .filled_orders
+                .iter()
+                .position(|&o| o.0 == order.id)
             {
                 let trader_filled_qty = exec_report.filled_orders[key].1;
                 let trader_filled_price = exec_report.filled_orders[key].2;
@@ -359,8 +333,7 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
                 );
                 self.strategy
                     .increment_master_position(-(trader_filled_qty as i32));
-                self.account.balance +=
-                    (trader_filled_qty * trader_filled_price) as i32;
+                self.account.balance += (trader_filled_qty * trader_filled_price) as i32;
                 dbgp!("TRADER FILLED: {}", trader_filled_qty);
                 if let Some(active_sell) = self.active_sell_order {
                     if trader_filled_qty == active_sell.qty {
@@ -424,8 +397,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                 .unwrap();
             dbgp!("Amend buy order {:?}", exec_report);
         } else {
-            exec_report =
-                ob.add_limit_order(self.strategy_sell_signal.unwrap());
+            exec_report = ob.add_limit_order(self.strategy_sell_signal.unwrap());
             dbgp!("New buy order {:?}", exec_report);
         }
         if exec_report.status == OrderStatus::Filled {
@@ -446,18 +418,14 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
     ///
     /// Will return `Err` if either reference price
     /// or criterion are None
-    pub fn lock_bid_price(
-        &self,
-        bbo: Option<(u32, u32)>,
-    ) -> Result<u32, String> {
+    pub fn lock_bid_price(&self, bbo: Option<(u32, u32)>) -> Result<u32, String> {
         let bid_price = match self.strategy.buy_price {
             | None => {
                 (bbo.ok_or_else(|| "Missing ref price".to_string())?.0 as i32
                     + self
                         .strategy
                         .buy_tick_criterion
-                        .ok_or_else(|| "Missing buy criterion".to_string())?)
-                    as u32
+                        .ok_or_else(|| "Missing buy criterion".to_string())?) as u32
             }
             | Some(price) => price,
         };
@@ -468,10 +436,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
     ///
     /// Will return `Err` if either reference price
     /// or criterion are None
-    pub fn lock_ask_price(
-        &self,
-        bbo: Option<(u32, u32)>,
-    ) -> Result<u32, String> {
+    pub fn lock_ask_price(&self, bbo: Option<(u32, u32)>) -> Result<u32, String> {
         let ask_price = match self.strategy.sell_price {
             | None => {
                 (bbo.ok_or_else(|| "Missing ref price".to_string())?.1 as i32
@@ -574,11 +539,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                         _price,
                         buy_order.price
                     );
-                    dbgp!(
-                        "[ STRAT] Old qty {}, New qty {}",
-                        _qty,
-                        buy_order.qty
-                    );
+                    dbgp!("[ STRAT] Old qty {}, New qty {}", _qty, buy_order.qty);
                     dbgp!("[ STRAT] send {:#?}", buy_order);
                     // FixPrice specific
                     unreachable!()
@@ -625,11 +586,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                         _price,
                         sell_order.price
                     );
-                    dbgp!(
-                        "[ STRAT] Old qty {}, New qty {}",
-                        _qty,
-                        sell_order.qty
-                    );
+                    dbgp!("[ STRAT] Old qty {}, New qty {}", _qty, sell_order.qty);
                     dbgp!("[ STRAT] send {:#?}", sell_order);
                     // FixPrice specific
                     unreachable!();
@@ -647,9 +604,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
         match (send_buy_order, send_sell_order) {
             | (true, true) => {
                 if let Some(active_sell) = self.active_sell_order {
-                    if self.strategy_buy_signal.unwrap().price
-                        < active_sell.price
-                    {
+                    if self.strategy_buy_signal.unwrap().price < active_sell.price {
                         self.send_buy_order(ob, epoch);
                         self.send_sell_order(ob, epoch);
                     } else {
@@ -687,8 +642,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                         trader_filled_qty,
                         trader_filled_price,
                     );
-                    self.account.balance -=
-                        (trader_filled_qty * trader_filled_price) as i32;
+                    self.account.balance -= (trader_filled_qty * trader_filled_price) as i32;
                     dbgp!("TRADER FILLED: {}", trader_filled_qty);
                     if let Some(active_buy) = self.active_buy_order {
                         if trader_filled_qty == active_buy.qty {
@@ -719,8 +673,10 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
             }
         }
         if let Some(order) = self.active_sell_order {
-            if let Some(key) =
-                exec_report.filled_orders.iter().position(|&o| o.0 == order.id)
+            if let Some(key) = exec_report
+                .filled_orders
+                .iter()
+                .position(|&o| o.0 == order.id)
             {
                 let trader_filled_qty = exec_report.filled_orders[key].1;
                 let trader_filled_price = exec_report.filled_orders[key].2;
@@ -729,8 +685,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                     trader_filled_qty,
                     trader_filled_price,
                 );
-                self.account.balance +=
-                    (trader_filled_qty * trader_filled_price) as i32;
+                self.account.balance += (trader_filled_qty * trader_filled_price) as i32;
                 dbgp!("TRADER FILLED: {}", trader_filled_qty);
                 if let Some(active_sell) = self.active_sell_order {
                     if trader_filled_qty == active_sell.qty {

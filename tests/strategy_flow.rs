@@ -18,10 +18,7 @@ fn metrics_1() -> StrategyMetrics {
 
 #[rstest]
 #[case((-0.000001, 0.000001), metrics_1())]
-fn snap_to_event_test(
-    #[case] criterions: (f32, f32),
-    #[case] expected: StrategyMetrics,
-) {
+fn snap_to_event_test(#[case] criterions: (f32, f32), #[case] expected: StrategyMetrics) {
     let ob_path = "data/ob.csv";
     let orders_path = "data/orders.csv";
     let mut ob = OrderBook::new();

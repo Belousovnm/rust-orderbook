@@ -1,8 +1,7 @@
 mod common;
 use orderbook::{
-    account::TradingAccount, backtest::TestStrategy,
-    management::OrderManagementSystem, place_body, LimitOrder, Order,
-    OrderBook, Side, Snap,
+    account::TradingAccount, backtest::TestStrategy, management::OrderManagementSystem, place_body,
+    LimitOrder, Order, OrderBook, Side, Snap,
 };
 use pretty_assertions::assert_eq;
 use rstest::{fixture, rstest};

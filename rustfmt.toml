@@ -2,7 +2,7 @@ edition = "2021"
 
 # Basic
 hard_tabs = false
-max_width = 80
+max_width = 100
 # use_small_heuristics = "Max"
 
 # Imports
@@ -14,12 +14,12 @@ newline_style = "Unix"
 
 # Misc
 binop_separator = "Front"
-chain_width = 80
+chain_width = 60
 match_arm_blocks = true
 match_arm_leading_pipes = "Always"
 match_block_trailing_comma = false
 reorder_impl_items = false
 spaces_around_ranges = false
 trailing_comma = "Vertical"
-trailing_semicolon = true
+trailing_semicolon = false
 use_field_init_shorthand = true

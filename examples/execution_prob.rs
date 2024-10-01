@@ -1,6 +1,6 @@
 use orderbook::{
-    account::TradingAccount, backtest::FixPriceStrategy,
-    experiments::execution_flow, management::OrderManagementSystem, OrderBook,
+    account::TradingAccount, backtest::FixPriceStrategy, experiments::execution_flow,
+    management::OrderManagementSystem, OrderBook,
 };
 
 fn main() {
@@ -8,7 +8,7 @@ fn main() {
     let orders_path = "data/orders.csv";
     let mut ob = OrderBook::default();
     let mut strat = FixPriceStrategy {
-        buy_tick_criterion: Some(-1),
+        buy_tick_criterion: Some(0),
         sell_tick_criterion: None,
         qty: 1,
         ..Default::default()
