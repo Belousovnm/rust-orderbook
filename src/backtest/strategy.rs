@@ -8,10 +8,11 @@
 
 pub trait Strategy {}
 
-impl Strategy for TestStrategy {}
+impl Strategy for FixSpreadStrategy {}
 impl Strategy for FixPriceStrategy {}
+impl Strategy for SignalStrategy {}
 
-impl TestStrategy {
+impl FixSpreadStrategy {
     pub const fn get_master_position(&self) -> i32 {
         self.master_position
     }
@@ -20,7 +21,7 @@ impl TestStrategy {
     }
 }
 
-pub struct TestStrategy {
+pub struct FixSpreadStrategy {
     pub qty: u32,
     pub buy_criterion: f32,
     pub sell_criterion: f32,
@@ -29,7 +30,7 @@ pub struct TestStrategy {
     pub sell_position_limit: i32,
 }
 
-impl TestStrategy {
+impl FixSpreadStrategy {
     pub fn new() -> Self {
         Self {
             buy_criterion: f32::INFINITY,
@@ -42,7 +43,7 @@ impl TestStrategy {
     }
 }
 
-impl Default for TestStrategy {
+impl Default for FixSpreadStrategy {
     fn default() -> Self {
         Self::new()
     }
@@ -55,4 +56,14 @@ pub struct FixPriceStrategy {
     pub sell_price: Option<u32>,
     pub buy_tick_criterion: Option<i32>,
     pub sell_tick_criterion: Option<i32>,
+}
+
+#[derive(Default)]
+pub struct SignalStrategy {
+    pub qty: u32,
+    pub buy_criterion: f32,
+    pub sell_criterion: f32,
+    pub master_position: i32,
+    pub buy_position_limit: i32,
+    pub sell_position_limit: i32,
 }

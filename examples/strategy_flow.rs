@@ -1,15 +1,15 @@
 use orderbook::{
     account::TradingAccount,
-    backtest::{strategy_flow, TestStrategy},
+    backtest::{strategy_flow, FixSpreadStrategy},
     management::OrderManagementSystem,
     OrderBook,
 };
 
 fn main() {
-    let ob_path = "data/ob.csv";
-    let orders_path = "data/orders.csv";
+    let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob_ALRS.2024-01-29.csv";
+    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders_ALRS.2024-01-29.csv";
     let mut ob = OrderBook::default();
-    let mut strat = TestStrategy::default();
+    let mut strat = FixSpreadStrategy::default();
     let initial_balance = 0;
     strat.buy_criterion = -0.0002;
     strat.sell_criterion = 0.0002;

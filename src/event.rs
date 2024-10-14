@@ -504,7 +504,7 @@ impl<'de> Deserialize<'de> for Signal {
                 A: MapAccess<'de>,
             {
                 let mut exch_epoch: Option<u64> = None;
-                let mut side: Option<u8> = None;
+                let mut side: Option<i8> = None;
 
                 while let Some(key) = map.next_key()? {
                     match key {
@@ -527,13 +527,12 @@ impl<'de> Deserialize<'de> for Signal {
                     }
                 }
                 let side = match side.unwrap() {
-                    | 0 => Side::Ask,
+                    | -1 => Side::Ask,
                     | 1 => Side::Bid,
                     | _ => unreachable!(),
                 };
 
                 Ok(Signal {
-                    // HACK
                     exch_epoch: exch_epoch.unwrap(),
                     side,
                 })

@@ -1,6 +1,6 @@
 use orderbook::{
     account::TradingAccount,
-    backtest::{strategy_flow, StrategyMetrics, TestStrategy},
+    backtest::{strategy_flow, FixSpreadStrategy, StrategyMetrics},
     management::OrderManagementSystem,
     OrderBook,
 };
@@ -22,7 +22,7 @@ fn snap_to_event_test(#[case] criterions: (f32, f32), #[case] expected: Strategy
     let ob_path = "data/ob.csv";
     let orders_path = "data/orders.csv";
     let mut ob = OrderBook::new();
-    let mut strat = TestStrategy::new();
+    let mut strat = FixSpreadStrategy::new();
     let initial_balance = 0;
     strat.buy_criterion = criterions.0;
     strat.sell_criterion = criterions.1;

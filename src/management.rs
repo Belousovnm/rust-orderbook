@@ -3,7 +3,7 @@
 
 use crate::{
     account::TradingAccount,
-    backtest::{FixPriceStrategy, Strategy, TestStrategy},
+    backtest::{FixPriceStrategy, FixSpreadStrategy, Strategy},
     dbgp,
     experiments::Schedule,
     matching_engine::{ExecutionReport, Order, OrderBook, OrderStatus, Side},
@@ -40,7 +40,7 @@ impl<'a, S: Strategy> OrderManagementSystem<'a, S> {
     }
 }
 
-impl<'a> OrderManagementSystem<'a, TestStrategy> {
+impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
     fn send_buy_order(&mut self, ob: &mut OrderBook) {
         let exec_report;
         if let Some(order) = self.active_buy_order {
@@ -272,12 +272,8 @@ impl<'a> OrderManagementSystem<'a, TestStrategy> {
                     self.send_sell_order(ob);
                 }
             }
-            | (true, false) => {
-                self.send_buy_order(ob);
-            }
-            | (false, true) => {
-                self.send_sell_order(ob);
-            }
+            | (true, false) => self.send_buy_order(ob),
+            | (false, true) => self.send_sell_order(ob),
             | (false, false) => {}
         }
     }
@@ -616,12 +612,8 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                     self.send_sell_order(ob, epoch);
                 }
             }
-            | (true, false) => {
-                self.send_buy_order(ob, epoch);
-            }
-            | (false, true) => {
-                self.send_sell_order(ob, epoch);
-            }
+            | (true, false) => self.send_buy_order(ob, epoch),
+            | (false, true) => self.send_sell_order(ob, epoch),
             | (false, false) => {}
         }
     }

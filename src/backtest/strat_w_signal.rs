@@ -1,17 +1,15 @@
 use crate::{
-    dbgp,
-    experiments::{Ready, Schedule},
-    management::OrderManagementSystem,
-    place_body, BestBidOffer, Order, OrderBook, Signal, Snap,
+    backtest::StrategyMetrics, dbgp, management::OrderManagementSystem, place_body, Midprice,
+    Order, OrderBook, Signal, Snap,
 };
 
-use crate::backtest::FixPriceStrategy;
+use crate::backtest::FixSpreadStrategy;
 
 /// # Panics
 ///
 /// Will panic if file read fails
 pub fn signal_flow(
-    oms: &mut OrderManagementSystem<FixPriceStrategy>,
+    oms: &mut OrderManagementSystem<FixSpreadStrategy>,
     ob: &mut OrderBook,
     ob_path: &str,
     orders_path: &str,
@@ -26,6 +24,8 @@ pub fn signal_flow(
     let mut epoch = 0;
     let mut trader_buy_id;
     let mut trader_sell_id;
+    let mut trading_volume: u32 = 0;
+    let mut trade_count: u32 = 0;
     let mut next_order = Order::default();
     let mut next_signal = Signal::default();
     dbgp!("Crafting Orderbook");
@@ -46,6 +46,7 @@ pub fn signal_flow(
     while next_signal.exch_epoch < epoch {
         if let Some(Ok(signal)) = sigrdr.next() {
             next_signal = signal;
+            dbgp!("[ SGNL ] {:?}", next_signal);
         }
     }
 
@@ -58,8 +59,14 @@ pub fn signal_flow(
                 dbgp!("[ EPCH ] order {:?}", next_order.id);
                 let exec_report = ob.add_limit_order(next_order);
                 dbgp!("{:#?}", exec_report);
-                // Updates active order when filled, releases price lock, restarts scheduler
+                let prev_account_balance = oms.account.balance;
                 oms.update(&exec_report);
+                dbgp!("POS {:#?}", oms.strategy.master_position);
+                dbgp!("ACC {:#?}", oms.account.balance);
+                if prev_account_balance != oms.account.balance {
+                    trading_volume += (oms.account.balance - prev_account_balance).unsigned_abs();
+                    trade_count += 1;
+                }
                 // Load next order
                 if let Some(Ok(order)) = trdr.next() {
                     next_order = order;
@@ -71,49 +78,37 @@ pub fn signal_flow(
             } else if epoch < next_order.id.min(next_signal.exch_epoch) {
                 // Load next snap
                 dbgp!("[ EPCH ] snap {:?}", epoch);
-                if let Some(order) = oms.active_buy_order.or(oms.active_sell_order) {
-                    // 10s censoring
-                    if epoch - order.id >= 10_000_000_000 {
-                        oms.cancel_all_orders(ob);
-                        println!("[  DB  ];{};{};{};{};", order.id, epoch, 10_000_000, 1);
-                        oms.lock_release();
-                        oms.schedule = Schedule::new();
-                    } else {
-                        *ob = ob.process_w_takers(snap, oms, place_body(true));
-                        trader_buy_id = epoch + 3;
-                        trader_sell_id = epoch + 7;
-                        oms.send_orders(ob, epoch, trader_buy_id, trader_sell_id);
-                    }
-                // No active orders
-                } else {
-                    match oms.schedule.ready() {
-                        | Ready::Yes => {
-                            // Lock new price after cooldown
-                            dbgp!("!!!! READY !!!!!");
-                            oms.schedule.set_counter(0);
-                            *ob = ob.process_w_takers(snap, oms, place_body(true));
-                            let bbo = BestBidOffer::evaluate(ob);
-                            dbgp!("bbo = {:?}", bbo);
-                            oms.strategy.buy_price = oms.lock_bid_price(bbo).ok();
-                            oms.strategy.sell_price = oms.lock_ask_price(bbo).ok();
-                            dbgp!("[ LOCK ] BID: {:?}", oms.strategy.buy_price);
-                            dbgp!("[ LOCK ] ASK: {:?}", oms.strategy.sell_price);
-                            trader_buy_id = epoch + 3;
-                            trader_sell_id = epoch + 7;
-                            oms.send_orders(ob, epoch, trader_buy_id, trader_sell_id);
-                        }
-                        | Ready::No => oms.schedule.incr_counter(),
-                    };
-                }
-                // dbgp!("{:?}", ob.get_order(oms.active_buy_order));
-                // dbgp!("{:?}", ob.get_order(oms.active_sell_order));
+                *ob = ob.process(snap, oms, place_body(true));
                 break;
             } else if next_signal.exch_epoch < epoch.min(next_order.id) {
-                todo!()
+                dbgp!("[ SGNL ] {:?}", next_signal);
+                let m = Midprice::evaluate(&ob.get_raw(oms));
+                trader_buy_id = next_signal.exch_epoch + 3;
+                trader_sell_id = next_signal.exch_epoch + 7;
+                oms.send_orders(ob, m, trader_buy_id, trader_sell_id);
+
+                if let Some(Ok(signal)) = sigrdr.next() {
+                    next_signal = signal;
+                }
             }
         }
     }
     dbgp!("{:#?}", ob);
     let _ = ob.get_bbo();
+    let pnl = Midprice::evaluate(ob).unwrap().mul_add(
+        oms.strategy.master_position as f32,
+        oms.account.balance as f32,
+    );
+    let pnl_bps = match trading_volume {
+        | 0 => 0.0,
+        | _ => (pnl / (trading_volume as f32)) * 10000.0,
+    };
     dbgp!("Done!");
+    let metrics = StrategyMetrics {
+        pnl_abs: pnl,
+        pnl_bps,
+        volume: trading_volume,
+        trade_count,
+    };
+    println!("{metrics}");
 }
