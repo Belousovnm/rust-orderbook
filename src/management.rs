@@ -6,6 +6,7 @@ use crate::{
     backtest::{FixPriceStrategy, FixSpreadStrategy, Strategy},
     dbgp,
     experiments::Schedule,
+    indicators::BestBidOffer,
     matching_engine::{ExecutionReport, Order, OrderBook, OrderStatus, Side},
 };
 
@@ -41,7 +42,7 @@ impl<'a, S: Strategy> OrderManagementSystem<'a, S> {
 }
 
 impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
-    fn send_buy_order(&mut self, ob: &mut OrderBook) {
+    fn send_buy_maker(&mut self, ob: &mut OrderBook) {
         let exec_report;
         if let Some(order) = self.active_buy_order {
             dbgp!("{} {:?}", order.id, ob.get_order(order.id));
@@ -61,13 +62,45 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
         }
     }
 
-    fn send_sell_order(&mut self, ob: &mut OrderBook) {
+    fn send_buy_taker(&mut self, ob: &mut OrderBook) {
+        let exec_report;
+        let taker_order = self.strategy_buy_signal.unwrap();
+        if let Some(order) = self.active_buy_order {
+            exec_report = ob.amend_limit_order(order.id, taker_order).unwrap();
+        } else {
+            exec_report = ob.add_limit_order(taker_order);
+        }
+        if exec_report.status == OrderStatus::Filled {
+            let trader_filled_qty = taker_order.qty;
+            let trader_filled_price = taker_order.price;
+            dbgp!(
+                "[TRADE ] qty = {:?}, price = {:?}",
+                trader_filled_qty,
+                trader_filled_price,
+            );
+            let traded_volume = trader_filled_qty * trader_filled_price;
+            self.account.balance -= traded_volume as i32;
+            self.strategy
+                .increment_master_position(trader_filled_qty as i32);
+            self.account.cumulative_volume += traded_volume;
+            dbgp!("TRADER TAKER: {}", trader_filled_qty);
+            dbgp!("POS {:#?}", self.strategy.master_position);
+            dbgp!("ACC {:#?}", self.account.balance);
+            self.account.trade_count += 1;
+        } else {
+            // Only taker orders allowed
+            // TODO Add PartialFill
+            unreachable!();
+        }
+    }
+
+    fn send_sell_maker(&mut self, ob: &mut OrderBook) {
         let exec_report;
         if let Some(order) = self.active_sell_order {
             exec_report = ob
                 .amend_limit_order(order.id, self.strategy_sell_signal.unwrap())
                 .unwrap();
-            dbgp!("Amend buy order {:?}", exec_report);
+            dbgp!("Amend sell order {:?}", exec_report);
         } else {
             exec_report = ob.add_limit_order(self.strategy_sell_signal.unwrap());
             dbgp!("New buy order {:?}", exec_report);
@@ -76,6 +109,39 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
             self.active_sell_order = self.strategy_sell_signal;
         } else {
             // Only maker orders allowed
+            unreachable!();
+        }
+    }
+
+    fn send_sell_taker(&mut self, ob: &mut OrderBook) {
+        let exec_report;
+        let taker_order = self.strategy_sell_signal.unwrap();
+        if let Some(order) = self.active_sell_order {
+            exec_report = ob.amend_limit_order(order.id, taker_order).unwrap();
+        } else {
+            exec_report = ob.add_limit_order(taker_order);
+        }
+        if exec_report.status == OrderStatus::Filled {
+            let trader_filled_qty = taker_order.qty;
+            let trader_filled_price = taker_order.price;
+            dbgp!(
+                "[TRADE ] qty = {:?}, price = {:?}",
+                trader_filled_qty,
+                trader_filled_price,
+            );
+
+            let traded_volume = trader_filled_qty * trader_filled_price;
+            self.account.balance += traded_volume as i32;
+            self.strategy
+                .increment_master_position(-(trader_filled_qty as i32));
+            self.account.cumulative_volume += traded_volume;
+            dbgp!("TRADER TAKER: {}", trader_filled_qty);
+            dbgp!("POS {:#?}", self.strategy.master_position);
+            dbgp!("ACC {:#?}", self.account.balance);
+            self.account.trade_count += 1;
+        } else {
+            // Only taker orders allowed
+            // TODO Add PartialFill
             unreachable!();
         }
     }
@@ -128,12 +194,12 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
             0
         };
         let qty = self.strategy.qty.min(free_qty);
-        // dbgp!(
-        //     "free_qty = {}, strategy_qty = {}, qty = {}",
-        //     free_qty,
-        //     self.strategy.qty,
-        //     qty
-        // );
+        dbgp!(
+            "free_qty = {}, strategy_qty = {}, qty = {}",
+            free_qty,
+            self.strategy.qty,
+            qty
+        );
         if qty > 0 {
             let order = Order {
                 id,
@@ -261,23 +327,57 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
             | (true, true) => {
                 if let Some(active_sell) = self.active_sell_order {
                     if self.strategy_buy_signal.unwrap().price < active_sell.price {
-                        self.send_buy_order(ob);
-                        self.send_sell_order(ob);
+                        self.send_buy(ob);
+                        self.send_sell(ob);
                     } else {
-                        self.send_sell_order(ob);
-                        self.send_buy_order(ob);
+                        self.send_sell(ob);
+                        self.send_buy(ob);
                     }
                 } else {
-                    self.send_buy_order(ob);
-                    self.send_sell_order(ob);
+                    self.send_buy(ob);
+                    self.send_sell(ob);
                 }
             }
-            | (true, false) => self.send_buy_order(ob),
-            | (false, true) => self.send_sell_order(ob),
+            | (true, false) => self.send_buy(ob),
+            | (false, true) => self.send_sell(ob),
             | (false, false) => {}
         }
     }
+
+    fn send_buy(&mut self, ob: &mut OrderBook) {
+        let strat_price = self.strategy_buy_signal.unwrap().price as f32;
+        let (bid, ask) = BestBidOffer::evaluate(ob).unwrap();
+        if strat_price >= bid as f32 * (1.0 + self.strategy.maker_range.0)
+            && strat_price <= bid as f32 * (1.0 + self.strategy.maker_range.1)
+            && strat_price < ask as f32
+        {
+            self.send_buy_maker(ob);
+        } else if strat_price >= ask as f32
+            && strat_price <= bid as f32 * (1.0 + self.strategy.taker_range.1)
+        {
+            self.send_buy_taker(ob);
+        }
+    }
+
+    fn send_sell(&mut self, ob: &mut OrderBook) {
+        let strat_price = self.strategy_sell_signal.unwrap().price as f32;
+        let (bid, ask) = BestBidOffer::evaluate(ob).unwrap();
+        if strat_price <= ask as f32 * (1.0 - self.strategy.maker_range.0)
+            && strat_price >= ask as f32 * (1.0 + self.strategy.maker_range.0)
+            && strat_price > bid as f32
+        {
+            self.send_sell_maker(ob);
+        } else if strat_price <= bid as f32
+            && strat_price >= ask as f32 * (1.0 - self.strategy.taker_range.1)
+        {
+            self.send_sell_taker(ob);
+        }
+    }
+
     pub fn update(&mut self, exec_report: &ExecutionReport) {
+        let mut trader_filled_qty;
+        let mut traded_volume = 0;
+        // let prev_account_balance = self.account.balance;
         if let Some(order) = self.active_buy_order {
             if exec_report.own_side == Side::Ask {
                 if let Some(key) = exec_report
@@ -285,7 +385,7 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
                     .iter()
                     .position(|&o| o.0 == order.id)
                 {
-                    let trader_filled_qty = exec_report.filled_orders[key].1;
+                    trader_filled_qty = exec_report.filled_orders[key].1;
                     let trader_filled_price = exec_report.filled_orders[key].2;
                     dbgp!(
                         "[TRADE ] qty = {:?}, price = {:?}",
@@ -294,21 +394,20 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
                     );
                     self.strategy
                         .increment_master_position(trader_filled_qty as i32);
-                    self.account.balance -= (trader_filled_qty * trader_filled_price) as i32;
+                    traded_volume = trader_filled_qty * trader_filled_price;
+                    self.account.balance -= traded_volume as i32;
                     dbgp!("TRADER FILLED: {}", trader_filled_qty);
                     if let Some(active_buy) = self.active_buy_order {
                         if trader_filled_qty == active_buy.qty {
                             self.active_buy_order = None;
                         } else {
                             let qty = order.qty;
-                            // dbgp!("BEFORE FILLED: {:?}", self.active_buy_order);
                             self.active_buy_order = Some(Order {
                                 id: order.id,
                                 side: Side::Bid,
                                 price: trader_filled_price,
                                 qty: qty - trader_filled_qty,
                             });
-                            // dbgp!("AFTER FILLED: {:?}", self.active_buy_order);
                         }
                     }
                 }
@@ -320,7 +419,7 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
                 .iter()
                 .position(|&o| o.0 == order.id)
             {
-                let trader_filled_qty = exec_report.filled_orders[key].1;
+                trader_filled_qty = exec_report.filled_orders[key].1;
                 let trader_filled_price = exec_report.filled_orders[key].2;
                 dbgp!(
                     "[TRADE ] qty = {:?}, price = {:?}",
@@ -329,30 +428,30 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
                 );
                 self.strategy
                     .increment_master_position(-(trader_filled_qty as i32));
-                self.account.balance += (trader_filled_qty * trader_filled_price) as i32;
+                traded_volume = trader_filled_qty * trader_filled_price;
+                self.account.balance += traded_volume as i32;
                 dbgp!("TRADER FILLED: {}", trader_filled_qty);
                 if let Some(active_sell) = self.active_sell_order {
                     if trader_filled_qty == active_sell.qty {
                         self.active_sell_order = None;
                     } else {
                         let qty = order.qty;
-                        // dbgp!("BEFORE FILLED: {:?}", self.active_sell_order);
                         self.active_sell_order = Some(Order {
                             id: order.id,
                             side: Side::Ask,
                             price: trader_filled_price,
                             qty: qty - trader_filled_qty,
                         });
-                        // dbgp!("AFTER FILLED: {:?}", self.active_sell_order);
                     }
                 }
-                // dbgp!(
-                //     "Active Orders {:?}, {:?}",
-                //     self.active_buy_order,
-                //     self.active_sell_order
-                // );
             };
             // std::mem::swap(&mut self.strategy.master_position, &mut new_position);
+        }
+        dbgp!("POS {:#?}", self.strategy.master_position);
+        dbgp!("ACC {:#?}", self.account.balance);
+        self.account.cumulative_volume += traded_volume;
+        if traded_volume != 0 {
+            self.account.trade_count += 1;
         }
     }
 }
@@ -376,7 +475,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                 exec_report.own_id,
                 epoch,
                 (epoch + 3 - exec_report.own_id) / 1000,
-                0
+                1
             );
             self.lock_release();
             self.schedule = Schedule::new();
@@ -391,10 +490,10 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
             exec_report = ob
                 .amend_limit_order(order.id, self.strategy_sell_signal.unwrap())
                 .unwrap();
-            dbgp!("Amend buy order {:?}", exec_report);
+            dbgp!("Amend sell order {:?}", exec_report);
         } else {
             exec_report = ob.add_limit_order(self.strategy_sell_signal.unwrap());
-            dbgp!("New buy order {:?}", exec_report);
+            dbgp!("New sell order {:?}", exec_report);
         }
         if exec_report.status == OrderStatus::Filled {
             println!(
@@ -402,7 +501,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                 exec_report.own_id,
                 epoch,
                 (epoch + 7 - exec_report.own_id) / 1000,
-                0
+                1
             );
             self.lock_release();
             self.schedule = Schedule::new();
@@ -645,7 +744,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                                 active_buy.id,
                                 exec_report.own_id,
                                 (exec_report.own_id - active_buy.id + 3) / 1000,
-                                0
+                                1
                             );
                             self.lock_release();
                             self.schedule = Schedule::new();
@@ -688,7 +787,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                             active_sell.id,
                             exec_report.own_id,
                             (exec_report.own_id - active_sell.id + 3) / 1000,
-                            0
+                            1
                         );
                         self.lock_release();
                         self.schedule = Schedule::new();

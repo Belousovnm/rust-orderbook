@@ -44,8 +44,6 @@ pub fn strategy_flow(
     let mut trader_buy_id;
     let mut trader_sell_id;
     let mut next_order = Order::default();
-    let mut trading_volume: u32 = 0;
-    let mut trade_count: u32 = 0;
     dbgp!("Crafting Orderbook");
     // Load first snapshot
     if let Some(Ok(first_snap)) = srdr.next() {
@@ -63,21 +61,13 @@ pub fn strategy_flow(
 
     'a: while let Some(Ok(snap)) = srdr.next() {
         epoch = snap.exch_epoch;
-        // let strategy_epoch = epoch + 100;
         loop {
             if next_order.id <= epoch {
                 // Apply order
                 dbgp!("[ EPCH ] order {:?}", next_order.id);
                 let exec_report = ob.add_limit_order(next_order);
                 dbgp!("{:#?}", exec_report);
-                let prev_account_balance = oms.account.balance;
                 oms.update(&exec_report);
-                dbgp!("POS {:#?}", oms.strategy.master_position);
-                dbgp!("ACC {:#?}", oms.account.balance);
-                if prev_account_balance != oms.account.balance {
-                    trading_volume += (oms.account.balance - prev_account_balance).unsigned_abs();
-                    trade_count += 1;
-                }
                 // Load next order
                 if let Some(Ok(order)) = trdr.next() {
                     next_order = order;
@@ -95,10 +85,7 @@ pub fn strategy_flow(
                 trader_buy_id = epoch + 3;
                 trader_sell_id = epoch + 7;
                 oms.send_orders(ob, m, trader_buy_id, trader_sell_id);
-                // dbgp!("{:?}", ob.get_order(oms.active_buy_order));
-                // dbgp!("{:?}", ob.get_order(oms.active_sell_order));
                 break;
-                // } else if strategy_epoch < epoch.min(next_order.id) {
             }
         }
     }
@@ -108,16 +95,16 @@ pub fn strategy_flow(
         oms.strategy.master_position as f32,
         oms.account.balance as f32,
     );
-    let pnl_bps = match trading_volume {
+    let pnl_bps = match oms.account.cumulative_volume {
         | 0 => 0.0,
-        | _ => (pnl / (trading_volume as f32)) * 10000.0,
+        | _ => (pnl / (oms.account.cumulative_volume as f32)) * 10000.0,
     };
     dbgp!("Done!");
     let metrics = StrategyMetrics {
         pnl_abs: pnl,
         pnl_bps,
-        volume: trading_volume,
-        trade_count,
+        volume: oms.account.cumulative_volume,
+        trade_count: oms.account.trade_count,
     };
     println!("{metrics}");
     metrics

@@ -542,10 +542,10 @@ impl OrderBook {
                 oms.strategy.buy_price = None;
                 println!(
                     "[--DB--];{};{};{};{};",
-                    exch_epoch,
-                    exec_report.own_id,
+                    exch_epoch + 3,
+                    exec_report.own_id - 3,
                     (exch_epoch + 3 - exec_report.own_id) / 1000,
-                    0
+                    1
                 );
                 oms.lock_release();
                 oms.schedule = Schedule::new();
@@ -556,10 +556,10 @@ impl OrderBook {
                 oms.strategy.buy_price = None;
                 println!(
                     "[--DB--];{};{};{};{};",
-                    exch_epoch,
-                    exec_report.own_id,
+                    exch_epoch + 7,
+                    exec_report.own_id - 7,
                     (exch_epoch + 7 - exec_report.own_id) / 1000,
-                    0
+                    1
                 );
                 oms.lock_release();
                 oms.schedule = Schedule::new();

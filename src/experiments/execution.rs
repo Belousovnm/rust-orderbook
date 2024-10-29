@@ -73,7 +73,7 @@ pub fn execution_flow(
                     // 10s censoring
                     if epoch - order.id >= 10_000_000_000 {
                         oms.cancel_all_orders(ob);
-                        println!("[  DB  ];{};{};{};{};", order.id, epoch, 10_000_000, 1);
+                        println!("[  DB  ];{};{};{};{};", order.id, epoch, 10_000_000, 0);
                         oms.lock_release();
                         oms.schedule = Schedule::new();
                     } else {

@@ -16,6 +16,7 @@ fn main() {
     strat.buy_position_limit = 100;
     strat.sell_position_limit = -100;
     strat.qty = 100;
+    strat.maker_range = (-f32::INFINITY, f32::INFINITY);
 
     let money_account = TradingAccount::new(initial_balance);
     let mut oms = OrderManagementSystem::new(&mut strat, money_account);

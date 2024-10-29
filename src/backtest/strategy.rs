@@ -6,6 +6,8 @@
 
 // use std::collections::HashSet;
 
+use core::f32;
+
 pub trait Strategy {}
 
 impl Strategy for FixSpreadStrategy {}
@@ -28,6 +30,8 @@ pub struct FixSpreadStrategy {
     pub master_position: i32,
     pub buy_position_limit: i32,
     pub sell_position_limit: i32,
+    pub maker_range: (f32, f32),
+    pub taker_range: (f32, f32),
 }
 
 impl FixSpreadStrategy {
@@ -35,6 +39,8 @@ impl FixSpreadStrategy {
         Self {
             buy_criterion: f32::INFINITY,
             sell_criterion: -f32::INFINITY,
+            maker_range: (-f32::INFINITY, f32::INFINITY),
+            taker_range: (0.0, f32::INFINITY),
             master_position: 0,
             buy_position_limit: 0,
             sell_position_limit: 0,
