@@ -71,11 +71,12 @@ pub fn execution_flow(
                 // Active orders
                 if let Some(order) = oms.active_buy_order.or(oms.active_sell_order) {
                     // 10s censoring
+                    // add price logging
                     if epoch - order.id >= 10_000_000_000 {
                         oms.cancel_all_orders(ob);
                         println!("[  DB  ];{};{};{};{};", order.id, epoch, 10_000_000, 0);
                         oms.lock_release();
-                        oms.schedule = Schedule::new();
+                        oms.schedule = Schedule::default();
                     } else {
                         *ob = ob.process_w_takers(snap, oms, place_body(true));
                         trader_buy_id = epoch + 3;

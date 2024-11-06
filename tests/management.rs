@@ -1,5 +1,6 @@
 mod common;
 use common::{empty_ob, full_ob};
+use orderbook::tick::Ticker;
 use orderbook::{
     account::TradingAccount, backtest::FixSpreadStrategy, management::OrderManagementSystem,
     Midprice, Order, OrderBook, Side,
@@ -11,7 +12,7 @@ use rstest::rstest;
 #[case(empty_ob(), Err("Missing Ref Price".to_owned()))]
 #[case(full_ob(), Ok(Order{id: 777, side: Side::Bid, price: 100, qty: 10}))]
 fn ref_price_to_order_test(#[case] ob: OrderBook, #[case] expected: Result<Order, String>) {
-    let mut strategy = FixSpreadStrategy::new();
+    let mut strategy = FixSpreadStrategy::new(Ticker::default());
     let account = TradingAccount::new(0);
     strategy.buy_criterion = 0.0;
     strategy.buy_position_limit = 10;
@@ -19,7 +20,7 @@ fn ref_price_to_order_test(#[case] ob: OrderBook, #[case] expected: Result<Order
     let trader_id = 777;
     let m = Midprice::evaluate(&ob);
     let oms = OrderManagementSystem::new(&mut strategy, account);
-    let trader_order = oms.calculate_buy_order(m, trader_id);
+    let trader_order = oms.calculate_buy_order(m, Some(trader_id));
 
     assert_eq!(trader_order, expected);
 }

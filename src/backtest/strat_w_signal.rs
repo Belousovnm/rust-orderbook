@@ -1,6 +1,9 @@
 use crate::{
-    backtest::StrategyMetrics, dbgp, management::OrderManagementSystem, place_body, Midprice,
-    Order, OrderBook, Side, Signal, Snap,
+    backtest::StrategyMetrics,
+    dbgp,
+    experiments::{Ready, Schedule},
+    management::OrderManagementSystem,
+    place_body, Midprice, Order, OrderBook, Side, Signal, Snap,
 };
 
 use crate::backtest::FixSpreadStrategy;
@@ -22,10 +25,14 @@ pub fn signal_flow(
     let mut trdr = trade_reader.deserialize::<Order>();
     let mut sigrdr = signals_reader.deserialize::<Signal>();
     let mut epoch = 0;
-    let mut trader_buy_id;
-    let mut trader_sell_id;
+    let mut trader_buy_id = None;
+    let mut trader_sell_id = None;
     let mut next_order = Order::default();
     let mut next_signal = Signal::default();
+    let mut clock = 0;
+    let mut schedule_soft = Schedule::new(10_000);
+    schedule_soft.counter = 10_000;
+    let mut schedule_hard = Schedule::new(u64::MAX);
     dbgp!("Crafting Orderbook");
     // Load first snapshot
     if let Some(Ok(first_snap)) = srdr.next() {
@@ -50,7 +57,6 @@ pub fn signal_flow(
 
     'a: while let Some(Ok(snap)) = srdr.next() {
         epoch = snap.exch_epoch;
-        // let strategy_epoch = epoch + 100;
         loop {
             if next_order.id <= epoch.min(next_signal.exch_epoch) {
                 // Apply order
@@ -70,25 +76,85 @@ pub fn signal_flow(
                 // Load next snap
                 dbgp!("[ EPCH ] snap {:?}", epoch);
                 *ob = ob.process(snap, oms, place_body(true));
-                break;
-            } else if next_signal.exch_epoch < epoch.min(next_order.id) {
-                dbgp!("[ SGNL ] {:?}", next_signal);
-                oms.cancel_all_orders(ob);
-                let m = Midprice::evaluate(&ob.get_raw(oms));
-                if next_signal.side == Side::Bid {
-                    oms.strategy.buy_criterion = 0.0005;
-                    oms.strategy.sell_criterion = 0.0010;
-                } else if next_signal.side == Side::Ask {
-                    oms.strategy.buy_criterion = -0.0010;
-                    oms.strategy.sell_criterion = -0.0005;
+                // hedging
+                // dbgp!("counter {:?}", oms.schedule.counter);
+                schedule_soft.set_counter(epoch - clock);
+                schedule_hard.set_counter(epoch - clock);
+                if oms.strategy.master_position != 0 {
+                    match (schedule_soft.ready(), schedule_hard.ready()) {
+                        | (Ready::Yes, Ready::No) => {
+                            dbgp!("Hedging as Maker");
+                            let m = Midprice::evaluate(&ob.get_raw(oms));
+                            match oms.strategy.master_position.cmp(&0) {
+                                // ??? untested ???
+                                | std::cmp::Ordering::Less => {
+                                    oms.strategy.buy_criterion = -0.0002;
+                                    oms.strategy.qty = oms.strategy.master_position.unsigned_abs();
+                                    oms.send_orders(ob, m, Some(epoch + 3), None);
+                                }
+                                | std::cmp::Ordering::Greater => {
+                                    oms.strategy.sell_criterion = 0.0002;
+                                    oms.strategy.qty = oms.strategy.master_position.unsigned_abs();
+                                    oms.send_orders(ob, m, None, Some(epoch + 7));
+                                }
+                                | std::cmp::Ordering::Equal => {}
+                            }
+                        }
+                        | (Ready::Yes, Ready::Yes) => {
+                            dbgp!("Hedging as Taker");
+                            let m = Midprice::evaluate(&ob.get_raw(oms));
+                            match oms.strategy.master_position.cmp(&0) {
+                                // ??? untested ???
+                                | std::cmp::Ordering::Less => {
+                                    oms.strategy.buy_criterion = 0.0005;
+                                    oms.strategy.qty = oms.strategy.master_position.unsigned_abs();
+                                    oms.send_orders(ob, m, Some(epoch + 3), None);
+                                }
+                                | std::cmp::Ordering::Greater => {
+                                    oms.strategy.sell_criterion = -0.0005;
+                                    oms.strategy.qty = oms.strategy.master_position.unsigned_abs();
+                                    oms.send_orders(ob, m, None, Some(epoch + 7));
+                                }
+                                | std::cmp::Ordering::Equal => {}
+                            }
+                            schedule_hard.counter = 0;
+                        }
+                        | (Ready::No, Ready::Yes) => {
+                            unreachable!()
+                        }
+                        | (Ready::No, Ready::No) => {}
+                    }
                 }
-                trader_buy_id = next_signal.exch_epoch + 3;
-                trader_sell_id = next_signal.exch_epoch + 7;
-                oms.send_orders(ob, m, trader_buy_id, trader_sell_id);
+                break;
+            } else if next_signal.exch_epoch <= epoch.min(next_order.id) {
+                if schedule_soft.ready() == Ready::Yes {
+                    dbgp!("[ SGNL ] {:?}", next_signal);
+                    let m = Midprice::evaluate(&ob.get_raw(oms));
+                    oms.strategy.qty = 1;
+                    if next_signal.side == Side::Bid {
+                        oms.strategy.buy_criterion = 0.0005;
+                        trader_buy_id = Some(next_signal.exch_epoch + 3);
+                        trader_sell_id = None;
+                    } else if next_signal.side == Side::Ask {
+                        oms.strategy.sell_criterion = -0.0005;
+                        trader_buy_id = None;
+                        trader_sell_id = Some(next_signal.exch_epoch + 7);
+                    }
+                    oms.send_orders(ob, m, trader_buy_id, trader_sell_id);
+                    clock = next_signal.exch_epoch;
+                    schedule_soft.counter = 0;
+                    schedule_hard.counter = 0;
+                }
 
                 if let Some(Ok(signal)) = sigrdr.next() {
                     next_signal = signal;
+                    next_signal.exch_epoch -= 1_000_000;
+                } else {
+                    // break;
+                    next_signal.exch_epoch = u64::MAX;
                 }
+            } else {
+                unreachable!()
             }
         }
     }
@@ -104,9 +170,9 @@ pub fn signal_flow(
     };
     dbgp!("Done!");
     let metrics = StrategyMetrics {
-        pnl_abs: pnl,
+        pnl_abs: pnl * oms.strategy.ticker.step_price,
         pnl_bps,
-        volume: oms.account.cumulative_volume,
+        volume: oms.account.cumulative_volume as f32 * oms.strategy.ticker.step_price,
         trade_count: oms.account.trade_count,
     };
     println!("{metrics}");

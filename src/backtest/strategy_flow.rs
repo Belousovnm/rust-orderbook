@@ -1,7 +1,7 @@
 use crate::{
     dbgp, management::OrderManagementSystem, place_body, Midprice, Order, OrderBook, Snap,
 };
-use readable::num::Unsigned;
+use readable::num::{Float, Unsigned};
 use std::fmt;
 
 use super::FixSpreadStrategy;
@@ -10,7 +10,7 @@ use super::FixSpreadStrategy;
 pub struct StrategyMetrics {
     pub pnl_abs: f32,
     pub pnl_bps: f32,
-    pub volume: u32,
+    pub volume: f32,
     pub trade_count: u32,
 }
 
@@ -21,7 +21,7 @@ impl fmt::Display for StrategyMetrics {
             "PnL abs     = {:.1}\nPnl bps     = {:.3}\nVolume      = {}\nTrade Count = {}",
             self.pnl_abs,
             self.pnl_bps,
-            Unsigned::from(self.volume),
+            Float::from(self.volume),
             Unsigned::from(self.trade_count)
         )
     }
@@ -82,8 +82,8 @@ pub fn strategy_flow(
                 *ob = ob.process(snap, oms, place_body(false));
                 // Trader's move
                 let m = Midprice::evaluate(&ob.get_raw(oms));
-                trader_buy_id = epoch + 3;
-                trader_sell_id = epoch + 7;
+                trader_buy_id = Some(epoch + 3);
+                trader_sell_id = Some(epoch + 7);
                 oms.send_orders(ob, m, trader_buy_id, trader_sell_id);
                 break;
             }
@@ -101,9 +101,9 @@ pub fn strategy_flow(
     };
     dbgp!("Done!");
     let metrics = StrategyMetrics {
-        pnl_abs: pnl,
+        pnl_abs: pnl * oms.strategy.ticker.step_price,
         pnl_bps,
-        volume: oms.account.cumulative_volume,
+        volume: oms.account.cumulative_volume as f32 * oms.strategy.ticker.step_price,
         trade_count: oms.account.trade_count,
     };
     println!("{metrics}");

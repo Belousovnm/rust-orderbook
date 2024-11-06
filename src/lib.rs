@@ -22,6 +22,7 @@ pub mod diff;
 pub mod experiments;
 pub mod management;
 pub mod risk_control;
+pub mod tick;
 pub mod utils;
 
 mod event;

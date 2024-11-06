@@ -548,7 +548,7 @@ impl OrderBook {
                     1
                 );
                 oms.lock_release();
-                oms.schedule = Schedule::new();
+                oms.schedule = Schedule::default();
             }
         }
         if let Some(exec_report) = exec_report_ask {
@@ -562,7 +562,7 @@ impl OrderBook {
                     1
                 );
                 oms.lock_release();
-                oms.schedule = Schedule::new();
+                oms.schedule = Schedule::default();
             }
         }
         ob

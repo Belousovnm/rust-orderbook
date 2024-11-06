@@ -7,21 +7,27 @@ pub enum Ready {
 }
 
 pub struct Schedule {
-    pub counter: u32,
-    pub cooldown: u32,
+    pub counter: u64,
+    pub cooldown: u64,
 }
 
 impl Default for Schedule {
     fn default() -> Self {
-        Self::new()
+        Self::new_rand()
     }
 }
 
 impl Schedule {
-    pub fn new() -> Self {
+    pub fn new_rand() -> Self {
         Self {
             counter: 0,
             cooldown: rand::thread_rng().gen_range(10..20),
+        }
+    }
+    pub const fn new(clock: u64) -> Self {
+        Self {
+            counter: 0,
+            cooldown: clock,
         }
     }
 
@@ -33,7 +39,7 @@ impl Schedule {
         }
     }
 
-    pub fn set_counter(&mut self, counter: u32) {
+    pub fn set_counter(&mut self, counter: u64) {
         self.counter = counter;
     }
 

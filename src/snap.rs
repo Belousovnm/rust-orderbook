@@ -217,6 +217,7 @@ pub fn next_snap(
 mod tests {
 
     use super::*;
+    use crate::tick::Ticker;
     use crate::{
         account::TradingAccount, backtest::FixSpreadStrategy, management::OrderManagementSystem,
         matching_engine::Side,
@@ -242,7 +243,7 @@ mod tests {
         };
         // let offset = Ok((Side::Bid, 101, 0, 1, 0, 999));
         let mut ob = OrderBook::new();
-        let strat = &mut FixSpreadStrategy::new();
+        let strat = &mut FixSpreadStrategy::new(Ticker::default());
         let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
         ob = ob.process(snap, oms, place_body(false));
         assert_eq!(ob.get_bbo().unwrap(), (99, 101, 2));

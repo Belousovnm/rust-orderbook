@@ -71,22 +71,7 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
             exec_report = ob.add_limit_order(taker_order);
         }
         if exec_report.status == OrderStatus::Filled {
-            let trader_filled_qty = taker_order.qty;
-            let trader_filled_price = taker_order.price;
-            dbgp!(
-                "[TRADE ] qty = {:?}, price = {:?}",
-                trader_filled_qty,
-                trader_filled_price,
-            );
-            let traded_volume = trader_filled_qty * trader_filled_price;
-            self.account.balance -= traded_volume as i32;
-            self.strategy
-                .increment_master_position(trader_filled_qty as i32);
-            self.account.cumulative_volume += traded_volume;
-            dbgp!("TRADER TAKER: {}", trader_filled_qty);
-            dbgp!("POS {:#?}", self.strategy.master_position);
-            dbgp!("ACC {:#?}", self.account.balance);
-            self.account.trade_count += 1;
+            self.update_taker(&exec_report);
         } else {
             // Only taker orders allowed
             // TODO Add PartialFill
@@ -122,23 +107,7 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
             exec_report = ob.add_limit_order(taker_order);
         }
         if exec_report.status == OrderStatus::Filled {
-            let trader_filled_qty = taker_order.qty;
-            let trader_filled_price = taker_order.price;
-            dbgp!(
-                "[TRADE ] qty = {:?}, price = {:?}",
-                trader_filled_qty,
-                trader_filled_price,
-            );
-
-            let traded_volume = trader_filled_qty * trader_filled_price;
-            self.account.balance += traded_volume as i32;
-            self.strategy
-                .increment_master_position(-(trader_filled_qty as i32));
-            self.account.cumulative_volume += traded_volume;
-            dbgp!("TRADER TAKER: {}", trader_filled_qty);
-            dbgp!("POS {:#?}", self.strategy.master_position);
-            dbgp!("ACC {:#?}", self.account.balance);
-            self.account.trade_count += 1;
+            self.update_taker(&exec_report);
         } else {
             // Only taker orders allowed
             // TODO Add PartialFill
@@ -149,33 +118,43 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
     ///
     /// Will return `Err` if either `Indicator` fails to provide reference price
     /// or `Strategy` has no limit left for this side
-    pub fn calculate_buy_order(&self, ref_price: Option<f32>, id: u64) -> Result<Order, String> {
-        let side = Side::Bid;
-        let price = (ref_price.ok_or_else(|| "Missing Ref Price".to_owned())?
-            * (1.0 + self.strategy.buy_criterion))
-            .floor() as u32;
-        let free_qty = if self.strategy.buy_position_limit - self.strategy.master_position > 0 {
-            (self.strategy.buy_position_limit - self.strategy.master_position) as u32
-        } else {
-            0
-        };
-        let qty = self.strategy.qty.min(free_qty);
-        // dbgp!(
-        //     "free_qty = {}, strategy_qty = {}, qty = {}",
-        //     free_qty,
-        //     self.strategy.qty,
-        //     qty
-        // );
-        if qty > 0 {
-            let order = Order {
-                id,
-                side,
-                price,
-                qty,
+    pub fn calculate_buy_order(
+        &self,
+        ref_price: Option<f32>,
+        id: Option<u64>,
+    ) -> Result<Order, String> {
+        if let Some(id) = id {
+            let side = Side::Bid;
+            let price = ((ref_price.ok_or_else(|| "Missing Ref Price".to_owned())?
+                * (1.0 + self.strategy.buy_criterion)
+                / self.strategy.ticker.tick_size)
+                .floor()
+                * self.strategy.ticker.tick_size) as u32;
+            let free_qty = if self.strategy.buy_position_limit - self.strategy.master_position > 0 {
+                (self.strategy.buy_position_limit - self.strategy.master_position) as u32
+            } else {
+                0
             };
-            Ok(order)
+            let qty = self.strategy.qty.min(free_qty);
+            // dbgp!(
+            //     "free_qty = {}, strategy_qty = {}, qty = {}",
+            //     free_qty,
+            //     self.strategy.qty,
+            //     qty
+            // );
+            if qty > 0 {
+                let order = Order {
+                    id,
+                    side,
+                    price,
+                    qty,
+                };
+                Ok(order)
+            } else {
+                Err("No Limit left".to_owned())
+            }
         } else {
-            Err("No Limit left".to_owned())
+            Err("No order id".to_owned())
         }
     }
 
@@ -183,33 +162,44 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
     ///
     /// Will return `Err` if either `Indicator` fails to provide reference price
     /// or `Strategy` has no limit left for this side
-    pub fn calculate_sell_order(&self, ref_price: Option<f32>, id: u64) -> Result<Order, String> {
-        let side = Side::Ask;
-        let price = (ref_price.ok_or_else(|| "Missing Ref Price".to_owned())?
-            * (1.0 + self.strategy.sell_criterion))
-            .ceil() as u32;
-        let free_qty = if -self.strategy.sell_position_limit + self.strategy.master_position > 0 {
-            (-self.strategy.sell_position_limit + self.strategy.master_position) as u32
-        } else {
-            0
-        };
-        let qty = self.strategy.qty.min(free_qty);
-        dbgp!(
-            "free_qty = {}, strategy_qty = {}, qty = {}",
-            free_qty,
-            self.strategy.qty,
-            qty
-        );
-        if qty > 0 {
-            let order = Order {
-                id,
-                side,
-                price,
-                qty,
+    pub fn calculate_sell_order(
+        &self,
+        ref_price: Option<f32>,
+        id: Option<u64>,
+    ) -> Result<Order, String> {
+        if let Some(id) = id {
+            let side = Side::Ask;
+            let price = ((ref_price.ok_or_else(|| "Missing Ref Price".to_owned())?
+                * (1.0 + self.strategy.sell_criterion)
+                / self.strategy.ticker.tick_size)
+                .ceil()
+                * self.strategy.ticker.tick_size) as u32;
+            let free_qty = if -self.strategy.sell_position_limit + self.strategy.master_position > 0
+            {
+                (-self.strategy.sell_position_limit + self.strategy.master_position) as u32
+            } else {
+                0
             };
-            Ok(order)
+            let qty = self.strategy.qty.min(free_qty);
+            dbgp!(
+                "free_qty = {}, strategy_qty = {}, qty = {}",
+                free_qty,
+                self.strategy.qty,
+                qty
+            );
+            if qty > 0 {
+                let order = Order {
+                    id,
+                    side,
+                    price,
+                    qty,
+                };
+                Ok(order)
+            } else {
+                Err("No Limit left".to_owned())
+            }
         } else {
-            Err("No Limit left".to_owned())
+            Err("No order id".to_owned())
         }
     }
 
@@ -220,8 +210,8 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
         &mut self,
         ob: &mut OrderBook,
         m: Option<f32>,
-        trader_buy_id: u64,
-        trader_sell_id: u64,
+        trader_buy_id: Option<u64>,
+        trader_sell_id: Option<u64>,
     ) {
         let mut send_buy_order = false;
         let mut send_sell_order = false;
@@ -374,10 +364,40 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
         }
     }
 
+    pub fn update_taker(&mut self, exec_report: &ExecutionReport) {
+        let (traded_volume, traded_qty) =
+            exec_report
+                .filled_orders
+                .iter()
+                .fold((0, 0), |(mut volume, mut qty), x| {
+                    volume += x.1 * x.2;
+                    qty += x.1;
+                    (volume, qty)
+                });
+        if exec_report.own_side == Side::Bid {
+            self.strategy.master_position += traded_qty as i32;
+            self.account.balance -= traded_volume as i32;
+            self.account.cumulative_volume += traded_volume;
+            self.account.trade_count += 1;
+            dbgp!("[TRADE ] qty = {:?}", traded_qty,);
+            dbgp!("POS {:#?}", self.strategy.master_position);
+            dbgp!("ACC {:#?}", self.account.balance);
+            dbgp!("#TRADES {:#?}", self.account.trade_count);
+        } else if exec_report.own_side == Side::Ask {
+            self.strategy.master_position -= traded_qty as i32;
+            self.account.balance += traded_volume as i32;
+            self.account.cumulative_volume += traded_volume;
+            self.account.trade_count += 1;
+            dbgp!("[TRADE ] qty = {:?}", traded_qty,);
+            dbgp!("POS {:#?}", self.strategy.master_position);
+            dbgp!("ACC {:#?}", self.account.balance);
+            dbgp!("#TRADES {:#?}", self.account.trade_count);
+        }
+    }
+
     pub fn update(&mut self, exec_report: &ExecutionReport) {
         let mut trader_filled_qty;
         let mut traded_volume = 0;
-        // let prev_account_balance = self.account.balance;
         if let Some(order) = self.active_buy_order {
             if exec_report.own_side == Side::Ask {
                 if let Some(key) = exec_report
@@ -392,8 +412,7 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
                         trader_filled_qty,
                         trader_filled_price,
                     );
-                    self.strategy
-                        .increment_master_position(trader_filled_qty as i32);
+                    self.strategy.master_position += trader_filled_qty as i32;
                     traded_volume = trader_filled_qty * trader_filled_price;
                     self.account.balance -= traded_volume as i32;
                     dbgp!("TRADER FILLED: {}", trader_filled_qty);
@@ -426,8 +445,7 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
                     trader_filled_qty,
                     trader_filled_price,
                 );
-                self.strategy
-                    .increment_master_position(-(trader_filled_qty as i32));
+                self.strategy.master_position -= trader_filled_qty as i32;
                 traded_volume = trader_filled_qty * trader_filled_price;
                 self.account.balance += traded_volume as i32;
                 dbgp!("TRADER FILLED: {}", trader_filled_qty);
@@ -447,12 +465,13 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
             };
             // std::mem::swap(&mut self.strategy.master_position, &mut new_position);
         }
-        dbgp!("POS {:#?}", self.strategy.master_position);
-        dbgp!("ACC {:#?}", self.account.balance);
         self.account.cumulative_volume += traded_volume;
         if traded_volume != 0 {
             self.account.trade_count += 1;
         }
+        dbgp!("POS {:#?}", self.strategy.master_position);
+        dbgp!("ACC {:#?}", self.account.balance);
+        dbgp!("#TRADES {:#?}", self.account.trade_count);
     }
 }
 
@@ -478,7 +497,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                 1
             );
             self.lock_release();
-            self.schedule = Schedule::new();
+            self.schedule = Schedule::default();
         } else {
             self.active_buy_order = self.strategy_buy_signal;
         }
@@ -504,7 +523,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                 1
             );
             self.lock_release();
-            self.schedule = Schedule::new();
+            self.schedule = Schedule::default();
         } else {
             self.active_sell_order = self.strategy_sell_signal;
         }
@@ -747,7 +766,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                                 1
                             );
                             self.lock_release();
-                            self.schedule = Schedule::new();
+                            self.schedule = Schedule::default();
                         } else {
                             let qty = order.qty;
                             // dbgp!("BEFORE FILLED: {:?}", self.active_buy_order);
@@ -790,7 +809,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                             1
                         );
                         self.lock_release();
-                        self.schedule = Schedule::new();
+                        self.schedule = Schedule::default();
                     } else {
                         let qty = order.qty;
                         // dbgp!("BEFORE FILLED: {:?}", self.active_sell_order);

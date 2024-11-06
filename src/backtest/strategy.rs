@@ -8,22 +8,16 @@
 
 use core::f32;
 
+use crate::tick::Ticker;
+
 pub trait Strategy {}
 
 impl Strategy for FixSpreadStrategy {}
 impl Strategy for FixPriceStrategy {}
 impl Strategy for SignalStrategy {}
 
-impl FixSpreadStrategy {
-    pub const fn get_master_position(&self) -> i32 {
-        self.master_position
-    }
-    pub fn increment_master_position(&mut self, incr: i32) {
-        self.master_position += incr;
-    }
-}
-
 pub struct FixSpreadStrategy {
+    pub ticker: Ticker,
     pub qty: u32,
     pub buy_criterion: f32,
     pub sell_criterion: f32,
@@ -35,8 +29,9 @@ pub struct FixSpreadStrategy {
 }
 
 impl FixSpreadStrategy {
-    pub fn new() -> Self {
+    pub fn new(ticker: Ticker) -> Self {
         Self {
+            ticker,
             buy_criterion: f32::INFINITY,
             sell_criterion: -f32::INFINITY,
             maker_range: (-f32::INFINITY, f32::INFINITY),
@@ -51,7 +46,7 @@ impl FixSpreadStrategy {
 
 impl Default for FixSpreadStrategy {
     fn default() -> Self {
-        Self::new()
+        Self::new(Ticker::default())
     }
 }
 
