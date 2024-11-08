@@ -5,12 +5,17 @@ use pretty_assertions::assert_eq;
 use rstest::rstest;
 
 #[rstest]
-#[case(empty_ob(), None)]
-#[case(full_ob(), Some(102.0))]
-fn avg_fill_price_test(#[case] mut ob: OrderBook, #[case] expected: Option<f32>) {
+#[case(empty_ob(), None, Err("Offer HalfBook is empty"))]
+#[case(full_ob(), Some(101.5), Ok((99, 103, 4)))]
+fn avg_fill_price_test(
+    #[case] mut ob: OrderBook,
+    #[case] expected: Option<f32>,
+    #[case] bbo: Result<(u32, u32, u32), &str>,
+) {
     let exec_report = ob.add_limit_order(taker_buy_order());
     let filled_price = exec_report.avg_fill_price();
-    assert_eq!(filled_price, expected)
+    assert_eq!(filled_price, expected);
+    assert_eq!(ob.get_bbo(), bbo);
 }
 
 #[rstest]

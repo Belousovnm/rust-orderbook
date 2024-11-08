@@ -30,7 +30,7 @@ pub enum OrderStatus {
     Cancelled,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct ExecutionReport {
     // Orders filled (id, qty, price)
     pub own_id: u64,
@@ -365,14 +365,11 @@ impl OrderBook {
             | _ => unreachable!(),
         };
 
-        if order.side == Side::Bid {
-            if self.best_bid_price.is_none() | self.best_bid_price.is_some_and(|b| order.price > b)
-            {
-                self.update_bbo();
-            }
-        } else if order.side == Side::Ask
-            && self.best_offer_price.is_none()
-                | self.best_offer_price.is_some_and(|a| order.price < a)
+        if (order.side == Side::Bid
+            && self.best_bid_price.is_none() | self.best_bid_price.is_some_and(|b| order.price > b))
+            | (order.side == Side::Ask
+                && self.best_offer_price.is_none()
+                    | self.best_offer_price.is_some_and(|a| order.price < a))
         {
             self.update_bbo();
         }
@@ -382,6 +379,7 @@ impl OrderBook {
         exec_report.remaining_qty = remaining_order_qty;
         if order.qty == 0 {
             dbgp!("WTF ORDER QTY 0! IN ORDER {}", order.id);
+            unreachable!();
         }
         exec_report
     }

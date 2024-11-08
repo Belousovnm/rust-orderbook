@@ -3,9 +3,11 @@
 // PERF: VecDeque is not contigous?
 // PEPR: SNAP -> L3 -> shortest update
 // TODO: TUI orderbook
+// TODO: Double OB strats
+// TODO: Cover all mutants
+// TODO: Make FixPrice 1st class citizen
 // Store total qty on level
 // Add Strategy builder
-// Add typestate
 #![warn(clippy::pedantic)]
 #![warn(clippy::nursery)]
 #![allow(clippy::similar_names)]

@@ -1,26 +1,38 @@
 mod common;
 use common::{empty_ob, full_ob};
-use orderbook::tick::Ticker;
 use orderbook::{
     account::TradingAccount, backtest::FixSpreadStrategy, management::OrderManagementSystem,
-    Midprice, Order, OrderBook, Side,
+    tick::Ticker, Midprice, Order, OrderBook, Side,
 };
 use pretty_assertions::assert_eq;
 use rstest::rstest;
 
 #[rstest]
-#[case(empty_ob(), Err("Missing Ref Price".to_owned()))]
-#[case(full_ob(), Ok(Order{id: 777, side: Side::Bid, price: 100, qty: 10}))]
-fn ref_price_to_order_test(#[case] ob: OrderBook, #[case] expected: Result<Order, String>) {
-    let mut strategy = FixSpreadStrategy::new(Ticker::default());
+#[case(empty_ob(), Side::Bid, Err("Missing Ref Price".to_owned()))]
+#[case(full_ob(), Side::Bid, Ok(Order{id: 3, side: Side::Bid, price: 99, qty: 10}))]
+#[case(full_ob(), Side::Ask, Ok(Order{id: 7, side: Side::Ask, price: 101, qty: 10}))]
+fn calculate_order_test(
+    #[case] ob: OrderBook,
+    #[case] side: Side,
+    #[case] expected: Result<Order, String>,
+) {
+    let mut strat = FixSpreadStrategy::new(Ticker::default());
     let account = TradingAccount::new(0);
-    strategy.buy_criterion = 0.0;
-    strategy.buy_position_limit = 10;
-    strategy.qty = 100;
-    let trader_id = 777;
+    strat.buy_criterion = -0.01;
+    strat.sell_criterion = 0.01;
+    strat.buy_position_limit = 10;
+    strat.sell_position_limit = -10;
+    strat.qty = 100;
+    let oms = OrderManagementSystem::new(&mut strat, account);
     let m = Midprice::evaluate(&ob);
-    let oms = OrderManagementSystem::new(&mut strategy, account);
-    let trader_order = oms.calculate_buy_order(m, Some(trader_id));
-
-    assert_eq!(trader_order, expected);
+    match side {
+        | Side::Bid => {
+            let trader_order = oms.calculate_buy_order(m, Some(3));
+            assert_eq!(trader_order, expected);
+        }
+        | Side::Ask => {
+            let trader_order = oms.calculate_sell_order(m, Some(7));
+            assert_eq!(trader_order, expected);
+        }
+    }
 }

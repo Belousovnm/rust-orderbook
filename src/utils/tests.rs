@@ -1,4 +1,4 @@
-use orderbook::{Order, OrderBook, Side};
+use crate::{Order, OrderBook, Side};
 
 #[allow(dead_code)]
 pub fn empty_ob() -> OrderBook {
@@ -8,6 +8,20 @@ pub fn empty_ob() -> OrderBook {
 #[allow(dead_code)]
 pub fn full_ob() -> OrderBook {
     let mut ob = OrderBook::new();
+    let buy_order = Order {
+        id: 444,
+        side: Side::Bid,
+        price: 97,
+        qty: 10,
+    };
+    ob.add_limit_order(buy_order);
+    let buy_order = Order {
+        id: 555,
+        side: Side::Bid,
+        price: 98,
+        qty: 10,
+    };
+    ob.add_limit_order(buy_order);
     let buy_order = Order {
         id: 666,
         side: Side::Bid,
@@ -40,7 +54,7 @@ pub fn full_ob() -> OrderBook {
 }
 
 #[allow(dead_code)]
-pub fn taker_buy_order() -> Order {
+pub const fn taker_buy_order() -> Order {
     Order {
         id: 1,
         side: Side::Bid,
