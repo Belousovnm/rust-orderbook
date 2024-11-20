@@ -74,7 +74,7 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
         if exec_report.status == OrderStatus::Filled
             || exec_report.status == OrderStatus::PartiallyFilled
         {
-            self.update_taker(&exec_report)
+            self.update_taker(&exec_report);
         } else {
             // Only taker orders allowed
             // TODO Add PartialFill
@@ -868,12 +868,12 @@ mod tests {
     #[case(full_ob(), 101, 15, ExecutionReport {own_id: 3,
                                                   own_side: Side::Bid,
                                                   remaining_qty: 5,
-                                                  filled_orders: vec!((999, 10, 101)),
+                                                  filled_orders: vec![(999, 10, 101)],
                                                   status: OrderStatus::PartiallyFilled})]
     #[case(full_ob(), 103, 30, ExecutionReport {own_id: 3,
                                                   own_side: Side::Bid,
                                                   remaining_qty: 0,
-                                                  filled_orders: vec!((999, 10, 101), (1000, 10, 102), (1001, 10, 103)),
+                                                  filled_orders: vec![(999, 10, 101), (1000, 10, 102), (1001, 10, 103)],
                                                   status: OrderStatus::Filled})]
     fn send_buy_test(
         #[case] mut ob: OrderBook,
@@ -903,12 +903,12 @@ mod tests {
     #[case(full_ob(), 99, 15, ExecutionReport {own_id: 7,
                                                   own_side: Side::Ask,
                                                   remaining_qty: 5,
-                                                  filled_orders: vec!((666, 10, 99)),
+                                                  filled_orders: vec![(666, 10, 99)],
                                                   status: OrderStatus::PartiallyFilled})]
     #[case(full_ob(), 97, 30, ExecutionReport {own_id: 7,
                                                   own_side: Side::Ask,
                                                   remaining_qty: 0,
-                                                  filled_orders: vec!((666, 10, 99), (555, 10, 98), (444, 10, 97)),
+                                                  filled_orders: vec![(666, 10, 99), (555, 10, 98), (444, 10, 97)],
                                                   status: OrderStatus::Filled})]
     fn send_sell_test(
         #[case] mut ob: OrderBook,
