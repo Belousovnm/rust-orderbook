@@ -77,7 +77,6 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
             self.update_taker(&exec_report);
         } else {
             // Only taker orders allowed
-            // TODO Add PartialFill
             unreachable!();
         }
         exec_report
@@ -117,7 +116,6 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
             self.update_taker(&exec_report);
         } else {
             // Only taker orders allowed
-            // TODO Add PartialFill
             unreachable!();
         }
         exec_report

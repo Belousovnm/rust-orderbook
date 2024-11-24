@@ -148,7 +148,6 @@ pub fn signal_flow(
 
                 if let Some(Ok(signal)) = sigrdr.next() {
                     next_signal = signal;
-                    next_signal.exch_epoch -= 1_000_000;
                 } else {
                     // break;
                     next_signal.exch_epoch = u64::MAX;
