@@ -20,8 +20,8 @@ fn metrics_1() -> StrategyMetrics {
 #[rstest]
 #[case((-0.0002, 0.0002), metrics_1())]
 fn snap_to_event_test(#[case] criterions: (f32, f32), #[case] expected: StrategyMetrics) {
-    let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob_ALRS.2024-01-29.csv";
-    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders_ALRS.2024-01-29.csv";
+    let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob/ob_ALRS.2024-01-29.csv";
+    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders/orders_ALRS.2024-01-29.csv";
     let mut ob = OrderBook::new();
     let ticker = Ticker {
         ticker_id: 0,
