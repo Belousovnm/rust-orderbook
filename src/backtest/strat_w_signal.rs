@@ -5,6 +5,8 @@ use crate::{
     management::OrderManagementSystem,
     place_body, Midprice, Order, OrderBook, Side, Signal, Snap,
 };
+use log::info;
+use log4rs::{self, config::Deserializers};
 
 use crate::backtest::FixSpreadStrategy;
 
@@ -18,6 +20,7 @@ pub fn signal_flow(
     orders_path: &str,
     signals_path: &str,
 ) {
+    log4rs::init_file("logging_config.yaml", Deserializers::default()).unwrap();
     let mut snap_reader = csv::Reader::from_path(ob_path).unwrap();
     let mut trade_reader = csv::Reader::from_path(orders_path).unwrap();
     let mut signals_reader = csv::Reader::from_path(signals_path).unwrap();
@@ -30,8 +33,9 @@ pub fn signal_flow(
     let mut next_order = Order::default();
     let mut next_signal = Signal::default();
     let mut clock = 0;
-    let mut schedule_soft = Schedule::new(10_000);
-    schedule_soft.counter = 10_000;
+    let mut schedule_soft = Schedule::new(1_000_000);
+    schedule_soft.counter = 1_000_000;
+    // Strange, need to check logs
     let mut schedule_hard = Schedule::new(u64::MAX);
     dbgp!("Crafting Orderbook");
     // Load first snapshot
@@ -64,6 +68,7 @@ pub fn signal_flow(
                 let exec_report = ob.add_limit_order(next_order);
                 dbgp!("{:#?}", exec_report);
                 oms.update(&exec_report);
+                info!(target: "pnl", "{};{:?}", next_order.id, oms.get_pnl(Midprice::evaluate(ob), false));
                 // Load next order
                 if let Some(Ok(order)) = trdr.next() {
                     next_order = order;
@@ -76,6 +81,7 @@ pub fn signal_flow(
                 // Load next snap
                 dbgp!("[ EPCH ] snap {:?}", epoch);
                 *ob = ob.process(snap, oms, place_body(true));
+                info!(target: "pnl", "{};{:?}", epoch, oms.get_pnl(Midprice::evaluate(ob), false));
                 // hedging
                 // dbgp!("counter {:?}", oms.schedule.counter);
                 schedule_soft.set_counter(epoch - clock);
@@ -106,14 +112,16 @@ pub fn signal_flow(
                             match oms.strategy.master_position.cmp(&0) {
                                 // ??? untested ???
                                 | std::cmp::Ordering::Less => {
-                                    oms.strategy.buy_criterion = 0.0005;
+                                    oms.strategy.buy_criterion = 0.05;
                                     oms.strategy.qty = oms.strategy.master_position.unsigned_abs();
                                     oms.send_orders(ob, m, Some(epoch + 3), None);
+                                    // info!(target: "pnl", "{};{:?}", epoch, oms.get_pnl(Midprice::evaluate(ob), false));
                                 }
                                 | std::cmp::Ordering::Greater => {
-                                    oms.strategy.sell_criterion = -0.0005;
+                                    oms.strategy.sell_criterion = -0.05;
                                     oms.strategy.qty = oms.strategy.master_position.unsigned_abs();
                                     oms.send_orders(ob, m, None, Some(epoch + 7));
+                                    // info!(target: "pnl", "{};{:?}", epoch, oms.get_pnl(Midprice::evaluate(ob), false));
                                 }
                                 | std::cmp::Ordering::Equal => {}
                             }
@@ -141,6 +149,7 @@ pub fn signal_flow(
                         trader_sell_id = Some(next_signal.exch_epoch + 7);
                     }
                     oms.send_orders(ob, m, trader_buy_id, trader_sell_id);
+                    info!(target: "pnl", "{};{:?}", next_signal.exch_epoch, oms.get_pnl(Midprice::evaluate(ob), false));
                     clock = next_signal.exch_epoch;
                     schedule_soft.counter = 0;
                     schedule_hard.counter = 0;
@@ -148,6 +157,7 @@ pub fn signal_flow(
 
                 if let Some(Ok(signal)) = sigrdr.next() {
                     next_signal = signal;
+                    // next_signal.exch_epoch += 50_000_000;
                 } else {
                     // break;
                     next_signal.exch_epoch = u64::MAX;
@@ -159,17 +169,12 @@ pub fn signal_flow(
     }
     dbgp!("{:#?}", ob);
     let _ = ob.get_bbo();
-    let pnl = Midprice::evaluate(ob).unwrap().mul_add(
-        oms.strategy.master_position as f32,
-        oms.account.balance as f32,
-    );
-    let pnl_bps = match oms.account.cumulative_volume {
-        | 0 => 0.0,
-        | _ => (pnl / (oms.account.cumulative_volume as f32)) * 10000.0,
-    };
+    let ref_price = Midprice::evaluate(ob);
+    let pnl_abs = oms.get_pnl(ref_price, false).unwrap();
+    let pnl_bps = oms.get_pnl(ref_price, true).unwrap();
     dbgp!("Done!");
     let metrics = StrategyMetrics {
-        pnl_abs: pnl * oms.strategy.ticker.step_price,
+        pnl_abs,
         pnl_bps,
         volume: oms.account.cumulative_volume as f32 * oms.strategy.ticker.step_price,
         trade_count: oms.account.trade_count,

@@ -7,9 +7,9 @@ use orderbook::{
 };
 
 fn main() {
-    let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob_MMZ4.2024-09-26.csv";
-    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders_MMZ4.2024-09-26.csv";
-    let signals_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/MM_signal_2024-09-26.csv";
+    let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob/ob_MMZ4.2024-09-25.csv";
+    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders/orders_MMZ4.2024-09-25.csv";
+    let signals_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/signals/MM_signal.2024-09-25.csv";
     let mut ob = OrderBook::default();
     let mmz4 = Ticker {
         ticker_id: 0,

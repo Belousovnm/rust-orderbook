@@ -71,9 +71,10 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
         } else {
             exec_report = ob.add_limit_order(taker_order);
         }
-        if exec_report.status == OrderStatus::Filled
-            || exec_report.status == OrderStatus::PartiallyFilled
-        {
+        if exec_report.status == OrderStatus::Filled {
+            self.update_taker(&exec_report);
+            self.active_buy_order = None;
+        } else if exec_report.status == OrderStatus::PartiallyFilled {
             self.update_taker(&exec_report);
         } else {
             // Only taker orders allowed
@@ -110,9 +111,10 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
         } else {
             exec_report = ob.add_limit_order(taker_order);
         }
-        if exec_report.status == OrderStatus::Filled
-            || exec_report.status == OrderStatus::PartiallyFilled
-        {
+        if exec_report.status == OrderStatus::Filled {
+            self.update_taker(&exec_report);
+            self.active_sell_order = None;
+        } else if exec_report.status == OrderStatus::PartiallyFilled {
             self.update_taker(&exec_report);
         } else {
             // Only taker orders allowed
@@ -270,6 +272,7 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
             }
         } else if let Some(order) = self.active_buy_order {
             let _ = ob.cancel_order(order.id);
+            self.active_buy_order = None;
         };
 
         if let Ok(sell_order) = self.calculate_sell_order(m, trader_sell_id) {
@@ -317,6 +320,7 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
             }
         } else if let Some(order) = self.active_sell_order {
             let _ = ob.cancel_order(order.id);
+            self.active_sell_order = None;
         };
 
         match (send_buy_order, send_sell_order) {
@@ -486,6 +490,22 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
         dbgp!("POS {:#?}", self.strategy.master_position);
         dbgp!("ACC {:#?}", self.account.balance);
         dbgp!("#TRADES {:#?}", self.account.trade_count);
+    }
+
+    pub fn get_pnl(&self, ref_price: Option<f32>, in_bps: bool) -> Option<f32> {
+        let pnl_abs = ref_price?.mul_add(
+            self.strategy.master_position as f32,
+            self.account.balance as f32,
+        );
+        let pnl_bps = match self.account.cumulative_volume {
+            | 0 => 0.0,
+            | _ => (pnl_abs / (self.account.cumulative_volume as f32)) * 10000.0,
+        };
+        if in_bps {
+            Some(pnl_bps)
+        } else {
+            Some(pnl_abs * self.strategy.ticker.step_price)
+        }
     }
 }
 

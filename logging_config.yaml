@@ -1,0 +1,42 @@
+appenders:
+  # stdout:
+  #   kind: console
+  #   encoder:
+  #     pattern: "{h({d(%Y-%m-%d %H:%M:%S)(utc)} - {l}: {m}{n})}"
+  general_logger:
+    kind: file
+    path: "logs/general.log"
+    encoder:
+      pattern: "{d(%Y-%m-%d %H:%M:%S)(utc)} - {h({l})}: {m}{n}"
+    # policy:
+    #   trigger:
+    #     kind: size
+    #     limit: 50kb
+    #   roller:
+    #     kind: fixed_window
+    #     base: 1
+    #     count: 10
+    #     pattern: "log/my{}.log"
+  pnl_logger:
+    kind: file
+    path: "logs/pnl.log"
+    encoder:
+      pattern: "{m}{n}"
+    # policy:
+    #   trigger:
+    #     kind: size
+    #     limit: 50kb
+    #   roller:
+    #     kind: delete
+root:
+  level: debug
+  appenders:
+    # - stdout
+    - general_logger
+loggers:
+  pnl:
+    level: info
+    appenders:
+      - pnl_logger
+    additive: false
+
