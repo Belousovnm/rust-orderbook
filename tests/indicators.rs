@@ -28,6 +28,7 @@ fn full_ob(bid: u32, ask: u32) -> OrderBook {
 #[rstest]
 #[case(empty_ob(), None)]
 #[case(full_ob(99, 101), Some(100.0))]
+#[case(full_ob(42, 43), Some(42.5))]
 fn midprice_test(#[case] input: OrderBook, #[case] expected: Option<f32>) {
     assert_eq!(Midprice::evaluate(&input), expected);
 }

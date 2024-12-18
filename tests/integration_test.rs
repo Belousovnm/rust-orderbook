@@ -28,7 +28,7 @@ fn deser_level(deser: Snap) {
 fn deser_to_ob(deser: Snap) {
     let mut ob = OrderBook::new();
     let strat = &mut FixSpreadStrategy::new(Ticker::default());
-    let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
+    let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0.0));
 
     let snap = deser;
     ob = ob.process(snap, oms, place_body(false));
@@ -40,7 +40,7 @@ fn exec_report_test() {
     let trader_order_id = 333;
     let mut ob = OrderBook::new();
     let strat = &mut FixSpreadStrategy::new(Ticker::default());
-    let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
+    let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0.0));
     let snap = Snap {
         exch_epoch: 0,
         vec: vec![

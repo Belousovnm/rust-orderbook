@@ -91,10 +91,9 @@ pub fn strategy_flow(
     }
     dbgp!("{:#?}", ob);
     let _ = ob.get_bbo();
-    let pnl = Midprice::evaluate(ob).unwrap().mul_add(
-        oms.strategy.master_position as f32,
-        oms.account.balance as f32,
-    );
+    let pnl = Midprice::evaluate(ob)
+        .unwrap()
+        .mul_add(oms.strategy.master_position as f32, oms.account.balance);
     let pnl_bps = match oms.account.cumulative_volume {
         | 0 => 0.0,
         | _ => (pnl / (oms.account.cumulative_volume as f32)) * 10000.0,

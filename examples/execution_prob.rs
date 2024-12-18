@@ -14,7 +14,7 @@ fn main() {
         ..Default::default()
     };
 
-    let money_account = TradingAccount::new(0);
+    let money_account = TradingAccount::new(0.0);
     let mut oms = OrderManagementSystem::new(&mut strat, money_account);
 
     execution_flow(&mut oms, &mut ob, ob_path, orders_path);

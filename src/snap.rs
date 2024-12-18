@@ -244,7 +244,7 @@ mod tests {
         // let offset = Ok((Side::Bid, 101, 0, 1, 0, 999));
         let mut ob = OrderBook::new();
         let strat = &mut FixSpreadStrategy::new(Ticker::default());
-        let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0));
+        let oms = &mut OrderManagementSystem::new(strat, TradingAccount::new(0.0));
         ob = ob.process(snap, oms, place_body(false));
         assert_eq!(ob.get_bbo().unwrap(), (99, 101, 2));
     }

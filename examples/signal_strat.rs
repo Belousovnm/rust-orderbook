@@ -7,15 +7,15 @@ use orderbook::{
 };
 
 fn main() {
-    let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob/ob_MMZ4.2024-09-25.csv";
-    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders/orders_MMZ4.2024-09-25.csv";
-    let signals_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/signals/MM_signal.2024-09-25.csv";
+    let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob/ob_MMZ4.2024-12-16.csv";
+    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders/orders_MMZ4.2024-12-16.csv";
+    let signals_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/signals/MM_signal.2024-12-16.csv";
     let mut ob = OrderBook::default();
     let mmz4 = Ticker {
         ticker_id: 0,
         tick_size: 5.0,
         step_price: 0.1,
-        taker_fee: 0.0,
+        taker_fee: 0.000066,
         maker_fee: 0.0,
     };
     let mut strat = FixSpreadStrategy {
@@ -28,7 +28,7 @@ fn main() {
         ..Default::default()
     };
 
-    let money_account = TradingAccount::new(0);
+    let money_account = TradingAccount::new(0.0);
     let mut oms = OrderManagementSystem::new(&mut strat, money_account);
 
     signal_flow(&mut oms, &mut ob, ob_path, orders_path, signals_path);

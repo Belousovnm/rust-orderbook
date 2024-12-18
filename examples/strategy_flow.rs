@@ -18,7 +18,7 @@ fn main() {
         maker_fee: 0.0,
     };
     let mut strat = FixSpreadStrategy::new(alrs);
-    let initial_balance = 0;
+    let initial_balance = 0.0;
     strat.buy_criterion = -0.0002;
     strat.sell_criterion = 0.0002;
     strat.buy_position_limit = 100;

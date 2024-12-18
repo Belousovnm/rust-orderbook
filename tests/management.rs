@@ -17,7 +17,7 @@ fn calculate_order_test(
     #[case] expected: Result<Order, String>,
 ) {
     let mut strat = FixSpreadStrategy::new(Ticker::default());
-    let account = TradingAccount::new(0);
+    let account = TradingAccount::new(0.0);
     strat.buy_criterion = -0.01;
     strat.sell_criterion = 0.01;
     strat.buy_position_limit = 10;
@@ -54,7 +54,7 @@ fn update_test(
     #[case] expected_order: Option<Order>,
 ) {
     let mut strat = FixSpreadStrategy::new(Ticker::default());
-    let account = TradingAccount::new(0);
+    let account = TradingAccount::new(0.0);
     strat.buy_criterion = -0.01;
     strat.sell_criterion = 0.01;
     strat.buy_position_limit = 10;
@@ -109,6 +109,7 @@ fn update_test(
 #[case(full_ob(), Some(100.0), -0.01, 0.01, 0)]
 #[case(full_ob(), None, 0.1, 0.2, 0)]
 #[case(full_ob(), Some(100.0), 0.01, 0.02, 1)]
+#[case(full_ob(), Some(100.0), -0.01, -0.02, -1)]
 fn send_orders_test(
     #[case] mut ob: OrderBook,
     #[case] m: Option<f32>,
@@ -124,11 +125,8 @@ fn send_orders_test(
     strat.qty = 1;
     let buy_id = Some(333);
     let sell_id = Some(777);
-    let account = TradingAccount::new(0);
+    let account = TradingAccount::new(0.0);
     let mut oms = OrderManagementSystem::new(&mut strat, account);
     oms.send_orders(&mut ob, m, buy_id, sell_id);
     assert_eq!(exp_position, oms.strategy.master_position);
 }
-// TODO
-// fn send_orders_test() {}
-// fn send_buy_test() {}

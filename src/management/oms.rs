@@ -394,7 +394,7 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
                 });
         if exec_report.own_side == Side::Bid {
             self.strategy.master_position += traded_qty as i32;
-            self.account.balance -= traded_volume as i32;
+            self.account.balance -= traded_volume as f32 * (1.0 + self.strategy.ticker.taker_fee);
             self.account.cumulative_volume += traded_volume;
             self.account.trade_count += 1;
             dbgp!("[TRADE ] qty = {:?}", traded_qty,);
@@ -403,7 +403,7 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
             dbgp!("#TRADES {:#?}", self.account.trade_count);
         } else if exec_report.own_side == Side::Ask {
             self.strategy.master_position -= traded_qty as i32;
-            self.account.balance += traded_volume as i32;
+            self.account.balance += traded_volume as f32 * (1.0 - self.strategy.ticker.taker_fee);
             self.account.cumulative_volume += traded_volume;
             self.account.trade_count += 1;
             dbgp!("[TRADE ] qty = {:?}", traded_qty,);
@@ -432,7 +432,8 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
                     );
                     self.strategy.master_position += trader_filled_qty as i32;
                     traded_volume = trader_filled_qty * trader_filled_price;
-                    self.account.balance -= traded_volume as i32;
+                    self.account.balance -=
+                        traded_volume as f32 * (1.0 + self.strategy.ticker.maker_fee);
                     dbgp!("TRADER FILLED: {}", trader_filled_qty);
                     if let Some(active_buy) = self.active_buy_order {
                         if trader_filled_qty == active_buy.qty {
@@ -465,7 +466,8 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
                 );
                 self.strategy.master_position -= trader_filled_qty as i32;
                 traded_volume = trader_filled_qty * trader_filled_price;
-                self.account.balance += traded_volume as i32;
+                self.account.balance +=
+                    traded_volume as f32 * (1.0 - self.strategy.ticker.maker_fee);
                 dbgp!("TRADER FILLED: {}", trader_filled_qty);
                 if let Some(active_sell) = self.active_sell_order {
                     if trader_filled_qty == active_sell.qty {
@@ -493,10 +495,8 @@ impl<'a> OrderManagementSystem<'a, FixSpreadStrategy> {
     }
 
     pub fn get_pnl(&self, ref_price: Option<f32>, in_bps: bool) -> Option<f32> {
-        let pnl_abs = ref_price?.mul_add(
-            self.strategy.master_position as f32,
-            self.account.balance as f32,
-        );
+        let pnl_abs =
+            ref_price?.mul_add(self.strategy.master_position as f32, self.account.balance);
         let pnl_bps = match self.account.cumulative_volume {
             | 0 => 0.0,
             | _ => (pnl_abs / (self.account.cumulative_volume as f32)) * 10000.0,
@@ -786,7 +786,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                         trader_filled_qty,
                         trader_filled_price,
                     );
-                    self.account.balance -= (trader_filled_qty * trader_filled_price) as i32;
+                    self.account.balance -= (trader_filled_qty * trader_filled_price) as f32;
                     dbgp!("TRADER FILLED: {}", trader_filled_qty);
                     if let Some(active_buy) = self.active_buy_order {
                         if trader_filled_qty == active_buy.qty {
@@ -829,7 +829,7 @@ impl<'a> OrderManagementSystem<'a, FixPriceStrategy> {
                     trader_filled_qty,
                     trader_filled_price,
                 );
-                self.account.balance += (trader_filled_qty * trader_filled_price) as i32;
+                self.account.balance += (trader_filled_qty * trader_filled_price) as f32;
                 dbgp!("TRADER FILLED: {}", trader_filled_qty);
                 if let Some(active_sell) = self.active_sell_order {
                     if trader_filled_qty == active_sell.qty {
@@ -900,7 +900,7 @@ mod tests {
         #[case] exp_report: ExecutionReport,
     ) {
         let mut strat = FixSpreadStrategy::new(Ticker::default());
-        let account = TradingAccount::new(0);
+        let account = TradingAccount::new(0.0);
         let mut oms = OrderManagementSystem::new(&mut strat, account);
         oms.strategy_buy_signal = Some(Order {
             id: 3,
@@ -935,7 +935,7 @@ mod tests {
         #[case] exp_report: ExecutionReport,
     ) {
         let mut strat = FixSpreadStrategy::new(Ticker::default());
-        let account = TradingAccount::new(0);
+        let account = TradingAccount::new(0.0);
         let mut oms = OrderManagementSystem::new(&mut strat, account);
         oms.strategy_sell_signal = Some(Order {
             id: 7,
@@ -947,3 +947,26 @@ mod tests {
         assert_eq!(exec_report, exp_report);
     }
 }
+
+// #[cfg(test)]
+// mod test {
+//     use super::*;
+//     use crate::tick::Ticker;
+//
+//     #[test]
+//     fn send_buy_test() {
+//         let mut strat = FixSpreadStrategy::new(Ticker::default());
+//         strat.buy_criterion = -0.0001;
+//         strat.sell_criterion = 0.0001;
+//         strat.buy_position_limit = 10;
+//         strat.sell_position_limit = -10;
+//         strat.qty = 1;
+//         let buy_id = Some(333);
+//         let sell_id = Some(777);
+//         let account = TradingAccount::new(0);
+//         let mut oms = OrderManagementSystem::new(&mut strat, account);
+//         let exec_report = oms.send_buy(&mut ob);
+//         let exp_report = ExecutionReport::default();
+//         assert_eq!(exp_report, exec_report);
+//     }
+// }

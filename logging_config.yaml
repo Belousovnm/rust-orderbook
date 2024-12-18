@@ -28,6 +28,11 @@ appenders:
     #     limit: 50kb
     #   roller:
     #     kind: delete
+  pos_logger:
+    kind: file
+    path: "logs/pos.log"
+    encoder:
+      pattern: "{m}{n}"
 root:
   level: debug
   appenders:
@@ -38,5 +43,10 @@ loggers:
     level: info
     appenders:
       - pnl_logger
+    additive: false
+  pos:
+    level: info
+    appenders:
+      - pos_logger
     additive: false
 

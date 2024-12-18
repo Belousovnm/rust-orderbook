@@ -33,8 +33,8 @@ pub fn signal_flow(
     let mut next_order = Order::default();
     let mut next_signal = Signal::default();
     let mut clock = 0;
-    let mut schedule_soft = Schedule::new(1_000_000);
-    schedule_soft.counter = 1_000_000;
+    let mut schedule_soft = Schedule::new(5_000_000);
+    schedule_soft.counter = 5_000_000;
     // Strange, need to check logs
     let mut schedule_hard = Schedule::new(u64::MAX);
     dbgp!("Crafting Orderbook");
@@ -69,6 +69,7 @@ pub fn signal_flow(
                 dbgp!("{:#?}", exec_report);
                 oms.update(&exec_report);
                 info!(target: "pnl", "{};{:?}", next_order.id, oms.get_pnl(Midprice::evaluate(ob), false));
+                info!(target: "pos", "{};{:?}", next_order.id, oms.strategy.master_position);
                 // Load next order
                 if let Some(Ok(order)) = trdr.next() {
                     next_order = order;
@@ -82,6 +83,7 @@ pub fn signal_flow(
                 dbgp!("[ EPCH ] snap {:?}", epoch);
                 *ob = ob.process(snap, oms, place_body(true));
                 info!(target: "pnl", "{};{:?}", epoch, oms.get_pnl(Midprice::evaluate(ob), false));
+                info!(target: "pos", "{};{:?}", next_order.id, oms.strategy.master_position);
                 // hedging
                 // dbgp!("counter {:?}", oms.schedule.counter);
                 schedule_soft.set_counter(epoch - clock);
@@ -150,6 +152,7 @@ pub fn signal_flow(
                     }
                     oms.send_orders(ob, m, trader_buy_id, trader_sell_id);
                     info!(target: "pnl", "{};{:?}", next_signal.exch_epoch, oms.get_pnl(Midprice::evaluate(ob), false));
+                    info!(target: "pos", "{};{:?}", next_order.id, oms.strategy.master_position);
                     clock = next_signal.exch_epoch;
                     schedule_soft.counter = 0;
                     schedule_hard.counter = 0;
