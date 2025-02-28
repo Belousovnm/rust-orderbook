@@ -61,10 +61,15 @@ pub struct FixPriceStrategy {
 
 #[derive(Default)]
 pub struct SignalStrategy {
+    pub ticker: Ticker,
     pub qty: u32,
-    pub buy_criterion: f32,
-    pub sell_criterion: f32,
+    pub buy_open_criterion: f32,
+    pub sell_open_criterion: f32,
+    pub buy_close_criterion: f32,
+    pub sell_close_criterion: f32,
     pub master_position: i32,
     pub buy_position_limit: i32,
     pub sell_position_limit: i32,
+    pub maker_range: (f32, f32),
+    pub taker_range: (f32, f32),
 }

@@ -31,7 +31,7 @@ fn snap_to_event_test(#[case] criterions: (f32, f32), #[case] expected: Strategy
         maker_fee: 0.0,
     };
     let mut strat = FixSpreadStrategy::new(ticker);
-    let initial_balance = 0;
+    let initial_balance = 0.0;
     strat.buy_criterion = criterions.0;
     strat.sell_criterion = criterions.1;
     strat.buy_position_limit = 100;

@@ -1,12 +1,9 @@
 use crate::matching_engine::Side;
-use rand::{
-    distributions::{Distribution, Standard},
-    Rng,
-};
+use rand::{distr::StandardUniform, prelude::Distribution, Rng};
 
-impl Distribution<Side> for Standard {
+impl Distribution<Side> for StandardUniform {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Side {
-        match rng.gen_range(0..=1) {
+        match rng.random_range(0..=1) {
             | 0 => Side::Bid,
             | 1 => Side::Ask,
             | _ => unreachable!(),

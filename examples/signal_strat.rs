@@ -1,15 +1,15 @@
 use orderbook::{
     account::TradingAccount,
-    backtest::{signal_flow, FixSpreadStrategy},
+    backtest::{signal_flow, SignalStrategy},
     management::OrderManagementSystem,
     tick::Ticker,
     OrderBook,
 };
 
 fn main() {
-    let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob/ob_MMZ4.2024-12-16.csv";
-    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders/orders_MMZ4.2024-12-16.csv";
-    let signals_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/signals/MM_signal.2024-12-16.csv";
+    let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob/ob_MMH5.2025-02-03.csv";
+    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders/orders_MMH5.2025-02-03.csv";
+    let signals_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/signals/CVD_signal.2025-02-03.csv";
     let mut ob = OrderBook::default();
     let mmz4 = Ticker {
         ticker_id: 0,
@@ -18,18 +18,22 @@ fn main() {
         taker_fee: 0.000066,
         maker_fee: 0.0,
     };
-    let mut strat = FixSpreadStrategy {
-        buy_criterion: 0.0005,
-        sell_criterion: -0.0005,
-        buy_position_limit: 10,
-        sell_position_limit: -10,
-        qty: 1,
+    let mut strat = SignalStrategy {
+        buy_open_criterion: 0.0001,
+        sell_open_criterion: -0.0001,
+        buy_close_criterion: -0.0001,
+        sell_close_criterion: 0.0001,
+        buy_position_limit: 50,
+        sell_position_limit: -50,
+        qty: 10,
         ticker: mmz4,
+        maker_range: (-f32::INFINITY, f32::INFINITY),
+        taker_range: (-f32::INFINITY, f32::INFINITY),
         ..Default::default()
     };
 
     let money_account = TradingAccount::new(0.0);
     let mut oms = OrderManagementSystem::new(&mut strat, money_account);
 
-    signal_flow(&mut oms, &mut ob, ob_path, orders_path, signals_path);
+    let _ = signal_flow(&mut oms, &mut ob, ob_path, orders_path, signals_path);
 }

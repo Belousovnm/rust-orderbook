@@ -1,8 +1,9 @@
 use crate::{
     dbgp,
     experiments::{Ready, Schedule},
+    indicators::BestBidOffer,
     management::OrderManagementSystem,
-    place_body, BestBidOffer, Order, OrderBook, Snap,
+    place_body, Order, OrderBook, Snap,
 };
 
 use crate::backtest::FixPriceStrategy;

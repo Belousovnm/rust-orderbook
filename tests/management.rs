@@ -1,8 +1,8 @@
 mod common;
 use common::{empty_ob, full_ob};
 use orderbook::{
-    account::TradingAccount, backtest::FixSpreadStrategy, management::OrderManagementSystem,
-    tick::Ticker, Midprice, Order, OrderBook, Side,
+    account::TradingAccount, backtest::FixSpreadStrategy, indicators::Midprice,
+    management::OrderManagementSystem, tick::Ticker, Order, OrderBook, Side,
 };
 use pretty_assertions::assert_eq;
 use rstest::rstest;

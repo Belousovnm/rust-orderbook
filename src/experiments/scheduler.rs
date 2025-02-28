@@ -21,7 +21,7 @@ impl Schedule {
     pub fn new_rand() -> Self {
         Self {
             counter: 0,
-            cooldown: rand::thread_rng().gen_range(10..20),
+            cooldown: rand::rng().random_range(10..20),
         }
     }
     pub const fn new(clock: u64) -> Self {
@@ -47,3 +47,6 @@ impl Schedule {
         self.counter += 1;
     }
 }
+// TODO:
+// next order update
+// next ob update

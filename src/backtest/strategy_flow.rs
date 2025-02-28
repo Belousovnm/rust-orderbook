@@ -1,5 +1,6 @@
 use crate::{
-    dbgp, management::OrderManagementSystem, place_body, Midprice, Order, OrderBook, Snap,
+    dbgp, indicators::Midprice, management::OrderManagementSystem, place_body, Order, OrderBook,
+    Snap,
 };
 use readable::num::{Float, Unsigned};
 use std::fmt;
@@ -68,6 +69,7 @@ pub fn strategy_flow(
                 let exec_report = ob.add_limit_order(next_order);
                 dbgp!("{:#?}", exec_report);
                 oms.update(&exec_report);
+                dbgp!("{}", ob);
                 // Load next order
                 if let Some(Ok(order)) = trdr.next() {
                     next_order = order;
@@ -80,16 +82,17 @@ pub fn strategy_flow(
                 // Load next snap
                 dbgp!("[ EPCH ] snap {:?}", epoch);
                 *ob = ob.process(snap, oms, place_body(false));
+                dbgp!("{}", ob);
                 // Trader's move
                 let m = Midprice::evaluate(&ob.get_raw(oms));
                 trader_buy_id = Some(epoch + 3);
                 trader_sell_id = Some(epoch + 7);
                 oms.send_orders(ob, m, trader_buy_id, trader_sell_id);
+                dbgp!("{}", ob);
                 break;
             }
         }
     }
-    dbgp!("{:#?}", ob);
     let _ = ob.get_bbo();
     let pnl = Midprice::evaluate(ob)
         .unwrap()

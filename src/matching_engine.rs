@@ -78,8 +78,8 @@ pub struct Order {
 #[allow(dead_code)]
 pub struct HalfBook {
     side: Side,
-    price_map: BTreeMap<u32, usize>,
-    price_levels: Vec<VecDeque<Order>>,
+    pub(crate) price_map: BTreeMap<u32, usize>,
+    pub(crate) price_levels: Vec<VecDeque<Order>>,
 }
 
 impl HalfBook {
@@ -105,8 +105,8 @@ impl HalfBook {
 pub struct OrderBook {
     pub best_bid_price: Option<u32>,
     pub best_offer_price: Option<u32>,
-    bid_book: HalfBook,
-    ask_book: HalfBook,
+    pub bid_book: HalfBook,
+    pub ask_book: HalfBook,
     // id, (side, price_level, price)
     pub order_loc: HashMap<u64, (Side, usize, u32)>,
 }
@@ -166,8 +166,8 @@ impl OrderBook {
         qty: u32,
         order_id: Option<u64>,
     ) -> u64 {
-        let mut rng = rand::thread_rng();
-        let order_id = order_id.unwrap_or_else(|| rng.gen());
+        let mut rng = rand::rng();
+        let order_id = order_id.unwrap_or_else(|| rng.random());
         let book = match side {
             | Side::Ask => &mut self.ask_book,
             | Side::Bid => &mut self.bid_book,
