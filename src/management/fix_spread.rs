@@ -4,10 +4,10 @@
 use crate::{
     backtest::FixSpreadStrategy,
     dbgp,
-    indicators::BestBidOffer,
+    engine::indicators::BestBidOffer,
+    engine::OrderStatus,
+    engine::{ExecutionReport, Order, OrderBook, Side},
     management::OrderManagementSystem,
-    matching_engine::{ExecutionReport, Order, OrderBook, Side},
-    OrderStatus,
 };
 
 impl OrderManagementSystem<'_, FixSpreadStrategy> {
@@ -441,10 +441,10 @@ impl OrderManagementSystem<'_, FixSpreadStrategy> {
 mod tests {
 
     use super::*;
-    use crate::account::TradingAccount;
-    use crate::tick::Ticker;
+    use crate::engine::OrderStatus;
+    use crate::engine::Ticker;
+    use crate::engine::TradingAccount;
     use crate::utils;
-    use crate::OrderStatus;
     use pretty_assertions::assert_eq;
     use rstest::rstest;
     use utils::tests::full_ob;
@@ -523,9 +523,9 @@ mod tests {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::account::TradingAccount;
-    use crate::tick::Ticker;
-    use crate::OrderStatus;
+    use crate::engine::OrderStatus;
+    use crate::engine::Ticker;
+    use crate::engine::TradingAccount;
 
     #[test]
     fn send_buy_test() {

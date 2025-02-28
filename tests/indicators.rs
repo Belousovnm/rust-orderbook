@@ -1,4 +1,7 @@
-use orderbook::{indicators::Midprice, Order, OrderBook, Side};
+use orderbook::{
+    engine::indicators::Midprice,
+    engine::{Order, OrderBook, Side},
+};
 use pretty_assertions::assert_eq;
 use rstest::rstest;
 

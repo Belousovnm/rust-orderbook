@@ -1,10 +1,9 @@
 #![allow(clippy::too_many_arguments)]
 use crate::{
     dbgp,
-    event::LimitOrder,
-    matching_engine::{Order, OrderBook, Side},
-    ExecutionReport,
-    //OrderStatus
+    engine::event::LimitOrder,
+    engine::matching_engine::{Order, OrderBook, Side},
+    engine::ExecutionReport,
 };
 
 #[derive(Debug, Default)]
@@ -217,10 +216,10 @@ pub fn next_snap(
 mod tests {
 
     use super::*;
-    use crate::tick::Ticker;
+    use crate::engine::Ticker;
     use crate::{
-        account::TradingAccount, backtest::FixSpreadStrategy, management::OrderManagementSystem,
-        matching_engine::Side,
+        backtest::FixSpreadStrategy, engine::account::TradingAccount,
+        engine::matching_engine::Side, management::OrderManagementSystem,
     };
     use pretty_assertions::assert_eq;
 

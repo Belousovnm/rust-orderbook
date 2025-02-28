@@ -1,4 +1,4 @@
-use orderbook::{Order, OrderBook, Side};
+use orderbook::engine::{Order, OrderBook, Side};
 
 #[allow(dead_code)]
 pub fn empty_ob() -> OrderBook {

@@ -1,7 +1,6 @@
-use crate::{
-    dbgp, indicators::Midprice, management::OrderManagementSystem, place_body, Order, OrderBook,
-    Snap,
-};
+use crate::dbgp;
+use crate::engine::{indicators::Midprice, place_body, Order, OrderBook, Snap};
+use crate::management::OrderManagementSystem;
 use readable::num::{Float, Unsigned};
 use std::fmt;
 

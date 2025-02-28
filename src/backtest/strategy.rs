@@ -8,7 +8,7 @@
 
 use core::f32;
 
-use crate::tick::Ticker;
+use crate::engine::Ticker;
 
 pub trait Strategy {}
 

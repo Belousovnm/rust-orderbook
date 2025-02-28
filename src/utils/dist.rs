@@ -1,4 +1,4 @@
-use crate::matching_engine::Side;
+use crate::engine::Side;
 use rand::{distr::StandardUniform, prelude::Distribution, Rng};
 
 impl Distribution<Side> for StandardUniform {

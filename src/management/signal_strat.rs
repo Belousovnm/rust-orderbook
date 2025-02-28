@@ -4,10 +4,10 @@
 use crate::{
     backtest::SignalStrategy,
     dbgp,
-    indicators::BestBidOffer,
+    engine::indicators::BestBidOffer,
+    engine::OrderStatus,
+    engine::{ExecutionReport, Order, OrderBook, Side},
     management::OrderManagementSystem,
-    matching_engine::{ExecutionReport, Order, OrderBook, Side},
-    OrderStatus,
 };
 
 impl OrderManagementSystem<'_, SignalStrategy> {

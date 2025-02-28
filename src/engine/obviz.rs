@@ -1,7 +1,7 @@
 use crate::utils::repeat;
 use std::fmt;
 
-use crate::OrderBook;
+use crate::engine::OrderBook;
 
 impl fmt::Display for OrderBook {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -71,7 +71,7 @@ impl fmt::Display for OrderBook {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{Order, Side};
+    use crate::engine::{Order, Side};
     use pretty_assertions::assert_eq;
 
     #[test]

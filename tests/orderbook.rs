@@ -1,6 +1,6 @@
 mod common;
 use common::{empty_ob, full_ob, taker_buy_order};
-use orderbook::{ExecutionReport, Order, OrderBook, OrderStatus, Side};
+use orderbook::engine::{ExecutionReport, Order, OrderBook, OrderStatus, Side};
 use pretty_assertions::assert_eq;
 use rstest::rstest;
 

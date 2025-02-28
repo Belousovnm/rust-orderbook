@@ -1,7 +1,4 @@
-use crate::{
-    matching_engine::{Order, Side},
-    snap::Snap,
-};
+use crate::engine::{Order, Side, Snap};
 use serde::{
     de::{Deserializer, Error, MapAccess, Visitor},
     Deserialize, Serialize,

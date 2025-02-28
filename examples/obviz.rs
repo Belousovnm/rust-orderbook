@@ -1,4 +1,4 @@
-use orderbook::{Order, OrderBook, Side};
+use orderbook::engine::{Order, OrderBook, Side};
 use rand::Rng;
 use std::{thread, time};
 fn main() {
