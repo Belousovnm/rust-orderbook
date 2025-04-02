@@ -4,6 +4,7 @@ use crate::engine::matching_engine::OrderBook;
 
 pub enum Midprice {}
 pub enum BestBidOffer {}
+pub enum Spread {}
 pub struct EmaMidprice {
     pub alpha: f32,
     value: Option<f32>,
@@ -15,10 +16,18 @@ impl Midprice {
         Some(midprice(bid, ask))
     }
 }
+
 impl BestBidOffer {
     pub fn evaluate(ob: &OrderBook) -> Option<(u32, u32)> {
         let (bid, ask, _spread) = ob.get_bbo().ok()?;
         Some((bid, ask))
+    }
+}
+
+impl Spread {
+    pub fn evaluate(ob: &OrderBook) -> Option<u32> {
+        let (_bid, _ask, spread) = ob.get_bbo().ok()?;
+        Some(spread)
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::{
     backtest::StrategyMetrics,
     dbgp,
-    engine::indicators::{EmaMidprice, Midprice},
+    engine::indicators::{EmaMidprice, Midprice, Spread},
     engine::{place_body, Order, OrderBook, OrderStatus, Side, Signal, Snap},
     error::MyError,
     experiments::{Ready, Schedule},
@@ -149,6 +149,7 @@ pub fn signal_flow(
                 if schedule_soft.ready() == Ready::Yes {
                     dbgp!("[ SGNL ] {:?}", next_signal);
                     let m = Midprice::evaluate(&ob.get_raw(oms));
+                    let _s = Spread::evaluate(&ob.get_raw(oms));
                     if next_signal.side == Side::Bid {
                         trader_buy_id = Some(next_signal.exch_epoch + 3);
                         trader_sell_id = None;

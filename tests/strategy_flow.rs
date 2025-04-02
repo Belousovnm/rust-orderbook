@@ -1,9 +1,7 @@
 use orderbook::{
-    account::TradingAccount,
     backtest::{strategy_flow, FixSpreadStrategy, StrategyMetrics},
+    engine::{OrderBook, Ticker, TradingAccount},
     management::OrderManagementSystem,
-    tick::Ticker,
-    OrderBook,
 };
 use pretty_assertions::assert_eq;
 use rstest::rstest;

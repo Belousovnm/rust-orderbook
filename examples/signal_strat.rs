@@ -7,14 +7,14 @@ use orderbook::{
 };
 
 fn main() {
-    let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob/ob_MMH5.2025-02-03.csv";
-    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders/orders_MMH5.2025-02-03.csv";
-    let signals_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/signals/CVD_signal.2025-02-03.csv";
+    let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob/ob_MMH5.2025-02-13.csv";
+    let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders/orders_MMH5.2025-02-13.csv";
+    let signals_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/signals/CVD_signal.2025-02-13.csv";
     let mut ob = OrderBook::default();
-    let mmz4 = Ticker {
+    let mm = Ticker {
         ticker_id: 0,
         tick_size: 5.0,
-        step_price: 0.1,
+        step_price: 0.5,
         taker_fee: 0.000066,
         maker_fee: 0.0,
     };
@@ -26,7 +26,7 @@ fn main() {
         buy_position_limit: 50,
         sell_position_limit: -50,
         qty: 10,
-        ticker: mmz4,
+        ticker: mm,
         maker_range: (-f32::INFINITY, f32::INFINITY),
         taker_range: (-f32::INFINITY, f32::INFINITY),
         ..Default::default()

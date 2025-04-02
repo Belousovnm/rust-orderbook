@@ -1,6 +1,8 @@
 pub struct Ticker {
     pub ticker_id: u64,
+    // Minimal increment
     pub tick_size: f32,
+    // Cost of tick_size in cash
     pub step_price: f32,
     pub taker_fee: f32,
     pub maker_fee: f32,
