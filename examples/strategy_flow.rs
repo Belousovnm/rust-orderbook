@@ -1,8 +1,6 @@
 use orderbook::{
     backtest::{strategy_flow, FixSpreadStrategy},
-    engine::OrderBook,
-    engine::Ticker,
-    engine::TradingAccount,
+    engine::{OrderBook, TradingAccount},
     management::OrderManagementSystem,
 };
 
@@ -10,14 +8,7 @@ fn main() {
     let ob_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/ob/ob_ALRS.2024-01-29.csv";
     let orders_path = "/opt/Zenpy/jupyter/data/voskhod/RUST_OB/orders/orders_ALRS.2024-01-29.csv";
     let mut ob = OrderBook::default();
-    let alrs = Ticker {
-        ticker_id: 0,
-        tick_size: 1.0,
-        step_price: 0.1,
-        taker_fee: 0.0,
-        maker_fee: 0.0,
-    };
-    let mut strat = FixSpreadStrategy::new(alrs);
+    let mut strat = FixSpreadStrategy::new(orderbook::utils::tick::ALRS);
     let initial_balance = 0.0;
     strat.buy_criterion = -0.0002;
     strat.sell_criterion = 0.0002;
