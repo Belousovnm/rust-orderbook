@@ -39,9 +39,9 @@ pub fn signal_flow(
     let mut next_order = Order::default();
     let mut next_signal = Signal::default();
     let mut clock = 0;
-    let mut schedule_soft = Schedule::new(5_000_000_000);
+    let mut schedule_soft = Schedule::new(10_000_000_000);
     let mut schedule_hard = Schedule::new(u64::MAX);
-    let mut ema = EmaMidprice::new(1.0);
+    let mut ema = EmaMidprice::new(0.95);
     let default_qty = oms.strategy.qty;
     dbgp!("Crafting Orderbook");
     // Load first snapshot
@@ -167,7 +167,7 @@ pub fn signal_flow(
                         dbgp!("Cooldown started!");
                         schedule_soft.counter = 0;
                         schedule_hard.counter = 0;
-                    };
+                    }
                     info!(target: "pnl", "{};{:?}", next_signal.exch_epoch, oms.get_pnl(Midprice::evaluate(ob), false));
                     info!(target: "pos", "{};{:?}", next_signal.exch_epoch, oms.strategy.master_position);
                     clock = next_signal.exch_epoch;
@@ -175,7 +175,7 @@ pub fn signal_flow(
 
                 if let Some(Ok(signal)) = sigrdr.next() {
                     next_signal = signal;
-                    // next_signal.exch_epoch += 150_000_000;
+                    next_signal.exch_epoch += 150_000;
                 } else {
                     // break;
                     next_signal.exch_epoch = u64::MAX;

@@ -39,11 +39,11 @@ impl Schedule {
         }
     }
 
-    pub fn set_counter(&mut self, counter: u64) {
+    pub const fn set_counter(&mut self, counter: u64) {
         self.counter = counter;
     }
 
-    pub fn incr_counter(&mut self) {
+    pub const fn incr_counter(&mut self) {
         self.counter += 1;
     }
 }

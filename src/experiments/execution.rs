@@ -103,7 +103,7 @@ pub fn execution_flow(
                             oms.send_orders(ob, epoch, trader_buy_id, trader_sell_id);
                         }
                         | Ready::No => oms.schedule.incr_counter(),
-                    };
+                    }
                 }
                 // dbgp!("{:?}", ob.get_order(oms.active_buy_order));
                 // dbgp!("{:?}", ob.get_order(oms.active_sell_order));

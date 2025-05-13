@@ -273,7 +273,7 @@ impl OrderBook {
             let id = price_level.front().unwrap().id;
             price_level.front_mut().unwrap().qty -= front_dec;
             ids.push(id);
-        };
+        }
         (ids, done_qty)
     }
 
@@ -469,7 +469,7 @@ impl OrderBook {
                     qty_head += o.qty;
                 } else if o.id != order_id && order_met {
                     qty_tail += o.qty;
-                };
+                }
             }
             Ok((*side, *price, qty_head, qty, qty_tail, order_id))
         } else {

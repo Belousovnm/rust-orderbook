@@ -99,7 +99,7 @@ impl OrderManagementSystem<'_, FixPriceStrategy> {
         Ok(ask_price)
     }
 
-    pub fn lock_release(&mut self) {
+    pub const fn lock_release(&mut self) {
         self.strategy.buy_price = None;
         self.strategy.sell_price = None;
     }
@@ -200,7 +200,7 @@ impl OrderManagementSystem<'_, FixPriceStrategy> {
             }
         } else if let Some(order) = self.active_buy_order {
             let _ = ob.cancel_order(order.id);
-        };
+        }
 
         if let Ok(sell_order) = self.calculate_sell_order(trader_sell_id) {
             match self.active_sell_order {
@@ -247,7 +247,7 @@ impl OrderManagementSystem<'_, FixPriceStrategy> {
             }
         } else if let Some(order) = self.active_sell_order {
             let _ = ob.cancel_order(order.id);
-        };
+        }
         match (send_buy_order, send_sell_order) {
             | (true, true) => {
                 if let Some(active_sell) = self.active_sell_order {
@@ -360,7 +360,7 @@ impl OrderManagementSystem<'_, FixPriceStrategy> {
                 //     self.active_buy_order,
                 //     self.active_sell_order
                 // );
-            };
+            }
             // std::mem::swap(&mut self.strategy.master_position, &mut new_position);
         }
     }

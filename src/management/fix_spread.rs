@@ -162,7 +162,7 @@ impl OrderManagementSystem<'_, FixSpreadStrategy> {
         } else if let Some(order) = self.active_buy_order {
             let _ = ob.cancel_order(order.id);
             self.active_buy_order = None;
-        };
+        }
 
         if let Ok(sell_order) = self.calculate_sell_order(m, trader_sell_id) {
             match self.active_sell_order {
@@ -210,7 +210,7 @@ impl OrderManagementSystem<'_, FixSpreadStrategy> {
         } else if let Some(order) = self.active_sell_order {
             let _ = ob.cancel_order(order.id);
             self.active_sell_order = None;
-        };
+        }
 
         match (send_buy_order, send_sell_order) {
             | (true, true) => {
@@ -379,7 +379,7 @@ impl OrderManagementSystem<'_, FixSpreadStrategy> {
                         });
                     }
                 }
-            };
+            }
             // std::mem::swap(&mut self.strategy.master_position, &mut new_position);
         }
         self.account.cumulative_volume += traded_volume;

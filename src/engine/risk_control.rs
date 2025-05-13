@@ -6,10 +6,10 @@ impl<S: Strategy> OrderManagementSystem<'_, S> {
         if let Some(order) = self.active_buy_order {
             let _ = ob.cancel_order(order.id);
             self.active_buy_order = None;
-        };
+        }
         if let Some(order) = self.active_sell_order {
             let _ = ob.cancel_order(order.id);
             self.active_sell_order = None;
-        };
+        }
     }
 }

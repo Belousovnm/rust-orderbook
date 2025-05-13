@@ -61,7 +61,7 @@ pub fn place_body(allow_fill: bool) -> impl Fn(&mut OrderBook, Order) -> Executi
                 }
             } else {
                 _exec_report = ob.add_limit_order(order);
-            };
+            }
         } else if order.side == Side::Bid {
             if let Some(best_offer_price) = ob.best_offer_price {
                 if order.price < best_offer_price {
@@ -69,7 +69,7 @@ pub fn place_body(allow_fill: bool) -> impl Fn(&mut OrderBook, Order) -> Executi
                 }
             } else {
                 _exec_report = ob.add_limit_order(order);
-            };
+            }
         }
         _exec_report
     }
@@ -123,7 +123,7 @@ fn place_head_tail(
             price,
             qty: qty_tail,
         });
-    };
+    }
     exec_report
 }
 
