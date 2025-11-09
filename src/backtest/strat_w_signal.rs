@@ -2,7 +2,7 @@ use crate::{
     backtest::StrategyMetrics,
     dbgp,
     engine::indicators::{EmaMidprice, Midprice, Spread},
-    engine::{place_body, Order, OrderBook, OrderStatus, Side, Signal, Snap},
+    engine::{Order, OrderBook, OrderStatus, Side, Signal, Snap, place_body},
     error::MyError,
     experiments::{Ready, Schedule},
     management::OrderManagementSystem,

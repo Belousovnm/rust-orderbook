@@ -1,7 +1,7 @@
 use crate::{
     backtest::{FixPriceStrategy, Strategy},
     dbgp,
-    engine::snap::{next_snap, Snap},
+    engine::snap::{Snap, next_snap},
     experiments::Schedule,
     management::OrderManagementSystem,
 };

@@ -1,4 +1,4 @@
-edition = "2021"
+edition = "2024"
 
 # Basic
 hard_tabs = false
@@ -23,3 +23,4 @@ spaces_around_ranges = false
 trailing_comma = "Vertical"
 trailing_semicolon = false
 use_field_init_shorthand = true
+

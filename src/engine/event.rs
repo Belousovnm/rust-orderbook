@@ -1,7 +1,7 @@
 use crate::engine::{Order, Side, Snap};
 use serde::{
-    de::{Deserializer, Error, MapAccess, Visitor},
     Deserialize, Serialize,
+    de::{Deserializer, Error, MapAccess, Visitor},
 };
 use std::fmt;
 
@@ -17,6 +17,8 @@ pub struct Signal {
     pub exch_epoch: u64,
     pub side: Side,
 }
+
+// Just use serde::Deserialize instead
 
 impl<'de> Deserialize<'de> for Snap {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
