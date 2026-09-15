@@ -1,7 +1,7 @@
 use core::time::Duration;
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use orderbook::engine::{Order, OrderBook, Side};
-use rand::Rng;
+use rand::RngExt;
 
 fn run_orders(num_orders: u32, rng: &mut rand::prelude::ThreadRng) -> OrderBook {
     let mut ob = OrderBook::new();

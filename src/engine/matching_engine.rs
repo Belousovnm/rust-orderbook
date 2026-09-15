@@ -5,7 +5,7 @@ use crate::{
     experiments::Schedule,
     management::OrderManagementSystem,
 };
-use rand::Rng;
+use rand::RngExt;
 use serde::Serialize;
 use std::{
     cmp::Ordering,
@@ -386,7 +386,7 @@ impl OrderBook {
 
     /// # Errors
     ///
-    /// Will return `Err` if atleast one `HalfBook` in `OrderBook` is empty
+    /// Will return `Err` if at least one `HalfBook` in `OrderBook` is empty
     pub fn get_bbo(&self) -> Result<(u32, u32, u32), &str> {
         match (self.best_bid_price, self.best_offer_price) {
             | (None, None) => Err("Both bid and offer HalfBooks are empty"),

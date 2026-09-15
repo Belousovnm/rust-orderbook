@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::RngExt;
 
 #[derive(Eq, PartialEq)]
 pub enum Ready {

@@ -1,5 +1,5 @@
 use crate::engine::Side;
-use rand::{distr::StandardUniform, prelude::Distribution, Rng};
+use rand::{Rng, RngExt, distr::StandardUniform, prelude::Distribution};
 
 impl Distribution<Side> for StandardUniform {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Side {
